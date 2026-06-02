@@ -1,0 +1,125 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum VoterStatus {
+  PENDING
+  APPROVED
+  NOMINATION_SUBMITTED
+  FINAL_VOTED
+}
+
+enum FinalistSource {
+  AUTO
+  ADMIN
+}
+
+model SystemSettings {
+  id                      Int     @id @default(1)
+  registrationOpen        Boolean @default(true)
+  nominationOpen          Boolean @default(false)
+  finalVoteOpen           Boolean @default(false)
+  minApprovedVoters       Int     @default(100)
+  nominationGoogleFormUrl String?
+  finalVoteGoogleFormUrl  String?
+  schoolEmailDomain       String  @default("")
+  updatedAt               DateTime @updatedAt
+}
+
+model Person {
+  id        String   @id @default(cuid())
+  fullName  String
+  email     String?  @unique
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  nominationsReceived Nomination[] @relation("Nominee")
+  finalists           Finalist[]
+  finalVotesReceived  FinalVote[]  @relation("VotedFor")
+}
+
+model Voter {
+  id           String      @id @default(cuid())
+  fullName     String
+  email        String      @unique
+  codeHash     String
+  status       VoterStatus @default(PENDING)
+  usedGoogleFormNomination Boolean @default(false)
+  usedGoogleFormFinal      Boolean @default(false)
+  createdAt    DateTime    @default(now())
+  approvedAt   DateTime?
+
+  nominations Nomination[]
+  finalVotes  FinalVote[]
+}
+
+model Position {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  title       String
+  description String
+  sortOrder   Int      @default(0)
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  nominations Nomination[]
+  finalists   Finalist[]
+  finalVotes  FinalVote[]
+}
+
+model Nomination {
+  id         String   @id @default(cuid())
+  voterId    String
+  positionId String
+  nomineeId  String
+  createdAt  DateTime @default(now())
+
+  voter    Voter    @relation(fields: [voterId], references: [id], onDelete: Cascade)
+  position Position @relation(fields: [positionId], references: [id], onDelete: Cascade)
+  nominee  Person   @relation("Nominee", fields: [nomineeId], references: [id], onDelete: Cascade)
+
+  @@unique([voterId, positionId])
+}
+
+model Finalist {
+  id         String         @id @default(cuid())
+  positionId String
+  personId   String
+  source     FinalistSource @default(AUTO)
+  sortOrder  Int            @default(0)
+  createdAt  DateTime       @default(now())
+
+  position Position @relation(fields: [positionId], references: [id], onDelete: Cascade)
+  person   Person   @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  @@unique([positionId, personId])
+}
+
+model FinalVote {
+  id         String   @id @default(cuid())
+  voterId    String
+  positionId String
+  personId   String
+  createdAt  DateTime @default(now())
+
+  voter    Voter    @relation(fields: [voterId], references: [id], onDelete: Cascade)
+  position Position @relation(fields: [positionId], references: [id], onDelete: Cascade)
+  person   Person   @relation("VotedFor", fields: [personId], references: [id], onDelete: Cascade)
+
+  @@unique([voterId, positionId])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  actorType String
+  actorId   String?
+  action    String
+  metadata  String?
+  createdAt DateTime @default(now())
+}

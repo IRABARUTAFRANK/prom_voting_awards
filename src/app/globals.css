@@ -1,0 +1,40 @@
+@import "tailwindcss";
+
+:root {
+  --background: #0f1a14;
+  --foreground: #ecfdf5;
+  --accent: #34d399;
+  --accent-dark: #059669;
+  --surface: rgba(255, 255, 255, 0.06);
+  --border: rgba(167, 243, 208, 0.15);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  min-height: 100vh;
+}
+
+.page-bg {
+  background:
+    radial-gradient(ellipse 90% 60% at 50% -10%, rgba(52, 211, 153, 0.22), transparent),
+    radial-gradient(ellipse 50% 40% at 100% 20%, rgba(16, 185, 129, 0.12), transparent),
+    radial-gradient(ellipse 40% 50% at 0% 100%, rgba(6, 95, 70, 0.35), transparent),
+    linear-gradient(180deg, #142820 0%, #0f1a14 45%, #0a1210 100%);
+}
+
+.glass-card {
+  border: 1px solid var(--border);
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.08) 0%,
+    rgba(255, 255, 255, 0.03) 100%
+  );
+  backdrop-filter: blur(12px);
+}
