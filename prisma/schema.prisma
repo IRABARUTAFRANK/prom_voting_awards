@@ -20,15 +20,14 @@ enum FinalistSource {
 }
 
 model SystemSettings {
-  id                      Int     @id @default(1)
-  registrationOpen        Boolean @default(true)
-  nominationOpen          Boolean @default(false)
-  finalVoteOpen           Boolean @default(false)
-  minApprovedVoters       Int     @default(100)
-  nominationGoogleFormUrl String?
-  finalVoteGoogleFormUrl  String?
-  schoolEmailDomain       String  @default("")
-  updatedAt               DateTime @updatedAt
+  id                Int      @id @default(1)
+  registrationOpen  Boolean  @default(true)
+  nominationOpen    Boolean  @default(false)
+  finalVoteOpen     Boolean  @default(false)
+  /** Display target for admins (e.g. 100). Does not block voting — admin approves & opens phases. */
+  minApprovedVoters Int      @default(1)
+  schoolEmailDomain String   @default("")
+  updatedAt         DateTime @updatedAt
 }
 
 model Person {
@@ -49,8 +48,6 @@ model Voter {
   email        String      @unique
   codeHash     String
   status       VoterStatus @default(PENDING)
-  usedGoogleFormNomination Boolean @default(false)
-  usedGoogleFormFinal      Boolean @default(false)
   createdAt    DateTime    @default(now())
   approvedAt   DateTime?
 

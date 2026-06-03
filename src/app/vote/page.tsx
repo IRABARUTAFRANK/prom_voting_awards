@@ -1,13 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { SiteHeader } from "@/components/site-header";
 import { PageBanner } from "@/components/page-banner";
+import { LiveStatusBar } from "@/components/live-status-bar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { useLiveRefresh } from "@/hooks/use-live-refresh";
 import { Loader2 } from "lucide-react";
 
 type Finalist = { personId: string; person: { fullName: string } };
@@ -22,33 +24,47 @@ export default function VotePage() {
   const router = useRouter();
   const [positions, setPositions] = useState<Position[]>([]);
   const [choices, setChoices] = useState<Record<string, string>>({});
-  const [loading, setLoading] = useState(true);
+  const [initialLoad, setInitialLoad] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
-  const [blocked, setBlocked] = useState(false);
+  const [blocked, setBlocked] = useState("");
 
-  useEffect(() => {
-    fetch("/api/voter/me")
-      .then((r) => {
-        if (r.status === 401) router.replace("/login");
-        return r.json();
-      })
-      .then((d) => {
-        if (!d?.settings?.finalVoteOpen || d.voter.status === "FINAL_VOTED") {
-          router.replace("/dashboard");
-          return;
-        }
-        const withFour = d.positions.filter((p: Position) => p.finalists.length >= 4);
-        if (withFour.length !== d.positions.length) {
-          setError("Finalists are not ready for all positions yet. Check back soon.");
-          setBlocked(true);
-          setPositions(d.positions);
-          return;
-        }
-        setPositions(d.positions);
-      })
-      .finally(() => setLoading(false));
+  const load = useCallback(async () => {
+    const r = await fetch("/api/voter/me", { cache: "no-store" });
+    if (r.status === 401) {
+      router.replace("/login");
+      return;
+    }
+    const d = await r.json();
+    if (!d?.settings?.finalVoteOpen) {
+      router.replace("/dashboard");
+      return;
+    }
+    if (!d.voter.canParticipate) {
+      setBlocked("Awaiting admin approval.");
+      setInitialLoad(false);
+      return;
+    }
+    if (d.voter.status === "FINAL_VOTED") {
+      router.replace("/dashboard");
+      return;
+    }
+    const withFour = d.positions.filter((p: Position) => p.finalists.length >= 4);
+    if (withFour.length !== d.positions.length) {
+      setError("Finalists are not ready for all positions yet. Refresh to check again.");
+      setBlocked("waiting-finalists");
+      setPositions(d.positions);
+      setInitialLoad(false);
+      return;
+    }
+    setBlocked("");
+    setPositions(d.positions);
+    setInitialLoad(false);
   }, [router]);
+
+  const { refresh, refreshing, lastUpdated } = useLiveRefresh(load, {
+    intervalMs: 4000,
+  });
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -79,7 +95,7 @@ export default function VotePage() {
     }
   }
 
-  if (loading) {
+  if (initialLoad) {
     return (
       <div className="flex min-h-screen items-center justify-center page-bg">
         <Loader2 className="h-8 w-8 animate-spin text-emerald-400" />
@@ -99,13 +115,26 @@ export default function VotePage() {
           <PageBanner
             variant="vote"
             title="Phase 2 — Final vote"
-            subtitle="Choose one winner from the 4 finalists for each award."
+            subtitle="Live session: choose one winner from the 4 finalists for each award."
           />
         </div>
 
-        {blocked ? (
+        <div className="mt-4">
+          <LiveStatusBar
+            onRefresh={refresh}
+            refreshing={refreshing}
+            lastUpdated={lastUpdated}
+            intervalMs={4000}
+          />
+        </div>
+
+        {blocked === "waiting-finalists" ? (
           <Card className="mt-8">
             <p className="text-amber-100">{error}</p>
+          </Card>
+        ) : blocked ? (
+          <Card className="mt-8">
+            <p className="text-amber-100">{blocked}</p>
           </Card>
         ) : (
           <form onSubmit={submit} className="mt-8 space-y-6">

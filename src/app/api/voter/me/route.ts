@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getVoterSession } from "@/lib/auth";
 import { prisma, getSettings } from "@/lib/db";
+import { voterMayParticipate } from "@/lib/voter-guards";
 
 export async function GET() {
   const session = await getVoterSession();
@@ -38,24 +39,24 @@ export async function GET() {
     where: { status: { not: "PENDING" } },
   });
 
+  const finalistsReady = positions.every((p) => p.finalists.length >= 4);
+
   return NextResponse.json({
     voter: {
       id: voter.id,
       fullName: voter.fullName,
       email: voter.email,
       status: voter.status,
-      usedGoogleFormNomination: voter.usedGoogleFormNomination,
-      usedGoogleFormFinal: voter.usedGoogleFormFinal,
+      canParticipate: voterMayParticipate(voter.status),
     },
     settings: {
       registrationOpen: settings.registrationOpen,
       nominationOpen: settings.nominationOpen,
       finalVoteOpen: settings.finalVoteOpen,
-      nominationGoogleFormUrl: settings.nominationGoogleFormUrl,
-      finalVoteGoogleFormUrl: settings.finalVoteGoogleFormUrl,
       minApprovedVoters: settings.minApprovedVoters,
     },
     approvedCount,
+    finalistsReady,
     positions,
     nominations,
     finalVotes,

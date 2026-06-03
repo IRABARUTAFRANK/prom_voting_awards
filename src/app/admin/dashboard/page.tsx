@@ -1,11 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { LiveStatusBar } from "@/components/live-status-bar";
+import { useLiveRefresh } from "@/hooks/use-live-refresh";
 import { Loader2 } from "lucide-react";
 
 type Stats = {
@@ -69,8 +71,9 @@ export default function AdminDashboardPage() {
   const [tab, setTab] = useState<"overview" | "voters" | "positions" | "shortlist" | "results">(
     "overview",
   );
-  const [loading, setLoading] = useState(true);
+  const [initialLoad, setInitialLoad] = useState(true);
   const [schoolDomain, setSchoolDomain] = useState("");
+  const [minApprovedInput, setMinApprovedInput] = useState("");
   const [newPos, setNewPos] = useState({ title: "", description: "", slug: "" });
   const [rosterLine, setRosterLine] = useState("");
 
@@ -88,15 +91,16 @@ export default function AdminDashboardPage() {
     const statsJson = await s.json();
     setStats(statsJson);
     setSchoolDomain(statsJson.settings.schoolEmailDomain ?? "");
+    setMinApprovedInput(String(statsJson.settings.minApprovedVoters ?? ""));
     setVoters((await v.json()).voters);
     setPositions((await p.json()).positions);
     setShortlist(await sl.json());
-    setLoading(false);
+    setInitialLoad(false);
   }, [router]);
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  const { refresh, refreshing, lastUpdated } = useLiveRefresh(load, {
+    intervalMs: 6000,
+  });
 
   async function patchSettings(data: Record<string, unknown>) {
     await fetch("/api/admin/settings", {
@@ -104,7 +108,7 @@ export default function AdminDashboardPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
     });
-    load();
+    refresh();
   }
 
   async function approveAll() {
@@ -113,7 +117,24 @@ export default function AdminDashboardPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ approveAllPending: true }),
     });
-    load();
+    refresh();
+  }
+
+  async function approveOne(voterId: string) {
+    await fetch("/api/admin/voters/approve", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ voterIds: [voterId] }),
+    });
+    refresh();
+  }
+
+  async function releasePhase1() {
+    await patchSettings({ nominationOpen: true, finalVoteOpen: false });
+  }
+
+  async function releasePhase2() {
+    await patchSettings({ finalVoteOpen: true });
   }
 
   async function autoShortlistAll() {
@@ -122,7 +143,7 @@ export default function AdminDashboardPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ all: true }),
     });
-    load();
+    refresh();
   }
 
   async function loadResults() {
@@ -145,7 +166,7 @@ export default function AdminDashboardPage() {
       body: JSON.stringify({ ...newPos, slug }),
     });
     setNewPos({ title: "", description: "", slug: "" });
-    load();
+    refresh();
   }
 
   async function importRoster() {
@@ -171,7 +192,7 @@ export default function AdminDashboardPage() {
     router.push("/admin");
   }
 
-  if (loading || !stats) {
+  if (initialLoad && !stats) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-emerald-400" />
@@ -195,7 +216,12 @@ export default function AdminDashboardPage() {
             <h1 className="text-2xl font-bold text-white">Admin dashboard</h1>
             <p className="text-white/50">Promo Awards &apos;26 control panel</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <LiveStatusBar
+              onRefresh={refresh}
+              refreshing={refreshing}
+              lastUpdated={lastUpdated}
+            />
             <Link href="/">
               <Button variant="ghost">Site</Button>
             </Link>
@@ -243,7 +269,15 @@ export default function AdminDashboardPage() {
             </Card>
 
             <Card className="sm:col-span-2 lg:col-span-4">
-              <h2 className="font-semibold text-white">Phases</h2>
+              <h2 className="font-semibold text-white">How to run (testing or full school)</h2>
+              <ol className="mt-2 list-decimal space-y-1 pl-5 text-sm text-emerald-100/65">
+                <li>Import Senior Six roster (Positions tab).</li>
+                <li>Approve voters — even one student is enough to test.</li>
+                <li>Release Phase 1 when you are ready (not automatic at 100).</li>
+                <li>After nominations, auto-shortlist top 4; add ties manually.</li>
+                <li>Release Phase 2 for live final voting among the 4 finalists.</li>
+              </ol>
+              <h2 className="mt-6 font-semibold text-white">Phases</h2>
               <div className="mt-4 flex flex-wrap gap-3">
                 <Button
                   variant={stats.settings.registrationOpen ? "primary" : "secondary"}
@@ -269,10 +303,16 @@ export default function AdminDashboardPage() {
                 >
                   Phase 2 (Final) {stats.settings.finalVoteOpen ? "ON" : "OFF"}
                 </Button>
+                <Button variant="primary" onClick={releasePhase1}>
+                  Release Phase 1 for students
+                </Button>
+                <Button variant="primary" onClick={releasePhase2}>
+                  Release Phase 2 (live vote)
+                </Button>
               </div>
               <p className="mt-3 text-xs text-white/40">
-                Target: {stats.settings.minApprovedVoters} approved voters · Current total:{" "}
-                {stats.counts.approvedTotal}
+                Goal (planning only): {stats.settings.minApprovedVoters} approved · Current:{" "}
+                {stats.counts.approvedTotal} — you decide when to open each phase.
               </p>
             </Card>
 
@@ -295,6 +335,18 @@ export default function AdminDashboardPage() {
                 >
                   Save email domain
                 </Button>
+                <Input
+                  className="max-w-sm"
+                  placeholder="Min approved voters"
+                  value={minApprovedInput}
+                  onChange={(e) => setMinApprovedInput(e.target.value)}
+                />
+                <Button onClick={() => patchSettings({ minApprovedVoters: Number(minApprovedInput) })}>
+                  Save target
+                </Button>
+                <Button onClick={() => patchSettings({ minApprovedVoters: 100 })}>
+                  Set goal to 100 (production)
+                </Button>
               </div>
             </Card>
           </div>
@@ -312,6 +364,7 @@ export default function AdminDashboardPage() {
                     <th className="p-3">Name</th>
                     <th className="p-3">Email</th>
                     <th className="p-3">Status</th>
+                    <th className="p-3">Action</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -320,6 +373,15 @@ export default function AdminDashboardPage() {
                       <td className="p-3 text-white">{v.fullName}</td>
                       <td className="p-3 text-white/60">{v.email}</td>
                       <td className="p-3 text-emerald-200">{v.status}</td>
+                      <td className="p-3">
+                        {v.status === "PENDING" ? (
+                          <Button className="px-3 py-1.5 text-xs" onClick={() => approveOne(v.id)}>
+                            Approve
+                          </Button>
+                        ) : (
+                          <span className="text-white/30">—</span>
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>

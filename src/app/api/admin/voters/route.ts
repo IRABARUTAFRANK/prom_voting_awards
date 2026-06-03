@@ -14,8 +14,7 @@ export async function GET() {
       email: true,
       status: true,
       createdAt: true,
-      usedGoogleFormNomination: true,
-      usedGoogleFormFinal: true,
+      approvedAt: true,
     },
   });
 

@@ -5,7 +5,6 @@ import { generateVoterCode, hashCode } from "@/lib/codes";
 import { normalizeEmail } from "@/lib/utils";
 
 const schema = z.object({
-  fullName: z.string().min(2).max(120),
   email: z.string().email(),
 });
 
@@ -40,12 +39,24 @@ export async function POST(req: Request) {
     );
   }
 
+  // Ensure the email exists in the imported roster (senior sixes only)
+  const rosterPerson = await prisma.person.findUnique({ where: { email } });
+  if (!rosterPerson) {
+    return NextResponse.json(
+      {
+        error:
+          "Email not on the Senior Six roster. Only students imported by admin can register.",
+      },
+      { status: 403 },
+    );
+  }
+
   const plainCode = generateVoterCode();
   const codeHash = await hashCode(plainCode);
 
   const voter = await prisma.voter.create({
     data: {
-      fullName: body.data.fullName.trim(),
+      fullName: rosterPerson.fullName,
       email,
       codeHash,
     },

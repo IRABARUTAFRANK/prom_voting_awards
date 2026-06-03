@@ -15,7 +15,7 @@ const steps = [
   {
     icon: Shield,
     title: "Admin approves",
-    text: "When enough students are registered (~100+), admins open Phase 1.",
+    text: "Only Senior Six emails on the official roster can register. Admin approves each voter and opens phases when ready.",
   },
   {
     icon: Vote,

@@ -22,7 +22,7 @@ export function PersonSearch({ value, onChange, disabled, excludeIds = [] }: Pro
 
   const search = useCallback(
     async (q: string) => {
-      if (q.trim().length < 2) {
+      if (q.trim().length < 1) {
         setResults([]);
         return;
       }
@@ -83,7 +83,7 @@ export function PersonSearch({ value, onChange, disabled, excludeIds = [] }: Pro
           </button>
         </div>
       )}
-      {open && !value && query.length >= 2 && (
+      {open && !value && query.length >= 1 && (
         <ul className="absolute z-20 mt-1 max-h-48 w-full overflow-auto rounded-xl border border-emerald-400/20 bg-emerald-950 py-1 shadow-2xl">
           {loading && <li className="px-4 py-2 text-sm text-emerald-200/50">Searching…</li>}
           {!loading && results.length === 0 && (

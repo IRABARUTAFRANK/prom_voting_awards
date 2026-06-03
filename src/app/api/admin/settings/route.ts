@@ -8,8 +8,6 @@ const patchSchema = z.object({
   nominationOpen: z.boolean().optional(),
   finalVoteOpen: z.boolean().optional(),
   minApprovedVoters: z.number().int().min(1).optional(),
-  nominationGoogleFormUrl: z.string().nullable().optional(),
-  finalVoteGoogleFormUrl: z.string().nullable().optional(),
   schoolEmailDomain: z.string().optional(),
 });
 

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getVoterSession } from "@/lib/auth";
 import { prisma, getSettings } from "@/lib/db";
+import { voterMayParticipate } from "@/lib/voter-guards";
 
 const schema = z.object({
   votes: z.array(
@@ -24,8 +25,11 @@ export async function POST(req: Request) {
   }
 
   const voter = await prisma.voter.findUnique({ where: { id: session.voterId } });
-  if (!voter || voter.status === "PENDING") {
-    return NextResponse.json({ error: "Not approved to vote." }, { status: 403 });
+  if (!voter || !voterMayParticipate(voter.status)) {
+    return NextResponse.json(
+      { error: "Not approved to vote. Wait for admin approval." },
+      { status: 403 },
+    );
   }
   if (voter.status === "FINAL_VOTED") {
     return NextResponse.json({ error: "You already cast your final vote." }, { status: 409 });

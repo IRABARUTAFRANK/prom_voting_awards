@@ -13,7 +13,7 @@ if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
 export async function getSettings() {
   return prisma.systemSettings.upsert({
     where: { id: 1 },
-    create: { id: 1 },
+    create: { id: 1, minApprovedVoters: 1 },
     update: {},
   });
 }

@@ -7,25 +7,43 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { formatCodeForDisplay } from "@/lib/utils";
-import { Copy, CheckCircle2 } from "lucide-react";
+import { Copy, CheckCircle2, Shield } from "lucide-react";
 
 export default function RegisterPage() {
-  const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
+  const [rosterName, setRosterName] = useState<string | null>(null);
+  const [lookupError, setLookupError] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [code, setCode] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
+  async function lookupEmail(value: string) {
+    setLookupError("");
+    setRosterName(null);
+    if (!value.includes("@")) return;
+    const r = await fetch(`/api/register/lookup?email=${encodeURIComponent(value)}`);
+    const d = await r.json();
+    if (d.found) {
+      setRosterName(d.fullName);
+    } else {
+      setLookupError(d.error ?? "Not on the Senior Six roster.");
+    }
+  }
+
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
+    if (!rosterName) {
+      setError("Use your school email from the official roster.");
+      return;
+    }
     setLoading(true);
     try {
       const res = await fetch("/api/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ fullName, email }),
+        body: JSON.stringify({ email }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -65,7 +83,7 @@ export default function RegisterPage() {
               {copied ? "Copied!" : "Copy code"}
             </Button>
             <p className="mt-6 text-sm text-amber-200/90">
-              Status: waiting for admin approval. You cannot vote until approved.
+              Status: waiting for admin approval. You cannot nominate or vote until approved.
             </p>
             <Link href="/login" className="mt-6 inline-block text-emerald-300 hover:text-white">
               Go to voter login →
@@ -82,19 +100,12 @@ export default function RegisterPage() {
       <main className="mx-auto max-w-md flex-1 px-4 py-12">
         <Card>
           <h1 className="text-2xl font-bold text-white">Register to vote</h1>
-          <p className="mt-2 text-sm text-white/55">
-            Use your real name and school email. A unique code will be generated for you.
+          <p className="mt-2 flex items-start gap-2 text-sm text-white/55">
+            <Shield className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" />
+            Senior Six only: your email must already be on the roster imported by admin. Names
+            cannot be typed freely — the system uses the roster record.
           </p>
           <form onSubmit={submit} className="mt-6 space-y-4">
-            <div>
-              <label className="mb-1 block text-sm text-white/70">Full name</label>
-              <Input
-                required
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                placeholder="e.g. Jane Uwera"
-              />
-            </div>
             <div>
               <label className="mb-1 block text-sm text-white/70">School email</label>
               <Input
@@ -102,11 +113,18 @@ export default function RegisterPage() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                onBlur={(e) => lookupEmail(e.target.value)}
                 placeholder="you@school.edu"
               />
+              {rosterName && (
+                <p className="mt-2 text-sm text-emerald-200">
+                  Roster name: <strong>{rosterName}</strong>
+                </p>
+              )}
+              {lookupError && <p className="mt-2 text-sm text-red-300">{lookupError}</p>}
             </div>
             {error && <p className="text-sm text-red-300">{error}</p>}
-            <Button type="submit" disabled={loading} className="w-full">
+            <Button type="submit" disabled={loading || !rosterName} className="w-full">
               {loading ? "Registering…" : "Register"}
             </Button>
           </form>

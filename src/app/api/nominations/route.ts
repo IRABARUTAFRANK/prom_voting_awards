@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getVoterSession } from "@/lib/auth";
 import { prisma, getSettings } from "@/lib/db";
+import { voterMayParticipate } from "@/lib/voter-guards";
 
 const schema = z.object({
   nominations: z.array(
@@ -24,8 +25,11 @@ export async function POST(req: Request) {
   }
 
   const voter = await prisma.voter.findUnique({ where: { id: session.voterId } });
-  if (!voter || voter.status === "PENDING") {
-    return NextResponse.json({ error: "Awaiting admin approval." }, { status: 403 });
+  if (!voter || !voterMayParticipate(voter.status)) {
+    return NextResponse.json(
+      { error: "Awaiting admin approval. An admin must approve you before you can nominate." },
+      { status: 403 },
+    );
   }
   if (voter.status === "NOMINATION_SUBMITTED" || voter.status === "FINAL_VOTED") {
     return NextResponse.json({ error: "You already submitted nominations." }, { status: 409 });

@@ -1,18 +1,21 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { SiteHeader } from "@/components/site-header";
 import { PageBanner } from "@/components/page-banner";
+import { LiveStatusBar } from "@/components/live-status-bar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { useLiveRefresh } from "@/hooks/use-live-refresh";
 import { ClipboardList, Loader2, Trophy } from "lucide-react";
 
 type MeResponse = {
   voter: {
     fullName: string;
     status: string;
+    canParticipate: boolean;
   };
   settings: {
     nominationOpen: boolean;
@@ -20,39 +23,42 @@ type MeResponse = {
     minApprovedVoters: number;
   };
   approvedCount: number;
+  finalistsReady: boolean;
 };
 
 const statusLabels: Record<string, string> = {
   PENDING: "Waiting for admin approval",
-  APPROVED: "Ready — open Phase 1 nomination form",
-  NOMINATION_SUBMITTED: "Phase 1 done — wait for top 4 finalists",
+  APPROVED: "Approved — open Phase 1 when admin releases it",
+  NOMINATION_SUBMITTED: "Phase 1 done — wait for top 4 finalists per award",
   FINAL_VOTED: "All done — thanks for voting!",
 };
 
 export default function DashboardPage() {
   const router = useRouter();
   const [data, setData] = useState<MeResponse | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [initialLoad, setInitialLoad] = useState(true);
 
-  useEffect(() => {
-    fetch("/api/voter/me")
-      .then((r) => {
-        if (r.status === 401) {
-          router.replace("/login");
-          return null;
-        }
-        return r.json();
-      })
-      .then((d) => setData(d))
-      .finally(() => setLoading(false));
+  const load = useCallback(async () => {
+    const r = await fetch("/api/voter/me", { cache: "no-store" });
+    if (r.status === 401) {
+      router.replace("/login");
+      return;
+    }
+    const d = await r.json();
+    setData(d);
+    setInitialLoad(false);
   }, [router]);
+
+  const { refresh, refreshing, lastUpdated } = useLiveRefresh(load, {
+    intervalMs: 5000,
+  });
 
   async function logout() {
     await fetch("/api/voter/logout", { method: "POST" });
     router.push("/");
   }
 
-  if (loading || !data) {
+  if (initialLoad && !data) {
     return (
       <div className="flex min-h-screen items-center justify-center page-bg">
         <Loader2 className="h-8 w-8 animate-spin text-emerald-400" />
@@ -60,12 +66,20 @@ export default function DashboardPage() {
     );
   }
 
+  if (!data) return null;
+
   const { voter, settings, approvedCount } = data;
-  const canNominate = voter.status === "APPROVED" && settings.nominationOpen;
-  const canFinalVote =
+  const approved = voter.canParticipate;
+  const canNominate =
+    approved &&
     voter.status !== "FINAL_VOTED" &&
-    voter.status !== "PENDING" &&
-    settings.finalVoteOpen;
+    voter.status !== "NOMINATION_SUBMITTED" &&
+    settings.nominationOpen;
+  const canFinalVote =
+    approved &&
+    voter.status !== "FINAL_VOTED" &&
+    settings.finalVoteOpen &&
+    data.finalistsReady;
 
   return (
     <div className="flex min-h-full flex-col">
@@ -74,44 +88,57 @@ export default function DashboardPage() {
         <PageBanner
           variant="dashboard"
           title={`Welcome, ${voter.fullName.split(" ")[0]}`}
-          subtitle={statusLabels[voter.status]}
+          subtitle={statusLabels[voter.status] ?? voter.status}
         />
 
-        <div className="mt-6 flex justify-end">
+        <div className="mt-4">
+          <LiveStatusBar
+            onRefresh={refresh}
+            refreshing={refreshing}
+            lastUpdated={lastUpdated}
+            intervalMs={5000}
+          />
+        </div>
+
+        <div className="mt-4 flex justify-end">
           <Button variant="ghost" onClick={logout}>
             Log out
           </Button>
         </div>
 
         <Card className="mt-6">
-          <p className="text-sm text-emerald-200/60">Approved voters</p>
+          <p className="text-sm text-emerald-200/60">Approved voters (informational)</p>
           <p className="text-2xl font-bold text-white">
             {approvedCount}
             <span className="text-base font-normal text-emerald-200/40">
               {" "}
-              / {settings.minApprovedVoters} target
+              / {settings.minApprovedVoters} goal
             </span>
+          </p>
+          <p className="mt-1 text-xs text-emerald-200/45">
+            The goal is for planning only. Admin decides when to approve you and open each phase.
           </p>
         </Card>
 
         {voter.status === "PENDING" && (
           <Card className="mt-4 border-amber-400/25">
             <p className="text-amber-100/90">
-              Your registration is pending. An admin will approve you when enough students have
-              registered.
+              Your registration is <strong>pending</strong>. An admin must approve you before you
+              can nominate or vote — even during testing with one student. Use Refresh to check
+              when you are approved.
             </p>
           </Card>
         )}
 
-        {canNominate && (
+        {approved && settings.nominationOpen && voter.status === "APPROVED" && (
           <Card className="mt-6 border-emerald-400/25">
             <div className="flex items-start gap-3">
               <ClipboardList className="mt-1 h-8 w-8 shrink-0 text-emerald-400" />
               <div>
                 <h2 className="font-semibold text-white">Phase 1 — Nomination form</h2>
                 <p className="mt-2 text-sm text-emerald-100/65">
-                  Choose one classmate per award from the school roster. Names must be selected
-                  from the list — type a few letters, then tap the correct person.
+                  Choose one classmate per award from the Senior Six roster. Type a letter or two,
+                  then pick the correct person from the list.
                 </p>
                 <Link href="/nominate" className="mt-4 inline-block">
                   <Button>Open nomination form →</Button>
@@ -121,11 +148,23 @@ export default function DashboardPage() {
           </Card>
         )}
 
-        {voter.status === "NOMINATION_SUBMITTED" && !settings.finalVoteOpen && (
-          <Card className="mt-6">
-            <p className="text-emerald-100/80">
-              Phase 1 complete. The system counts nominations and admins confirm the top 4 per
-              award. You will vote on the final form when Phase 2 opens.
+        {canNominate === false &&
+          approved &&
+          settings.nominationOpen &&
+          voter.status === "NOMINATION_SUBMITTED" && (
+            <Card className="mt-6">
+              <p className="text-emerald-100/80">
+                Phase 1 complete. Top nominees are counted automatically; admin confirms the 4
+                finalists per award. You will see Phase 2 here when the admin opens final voting.
+              </p>
+            </Card>
+          )}
+
+        {approved && settings.finalVoteOpen && !data.finalistsReady && (
+          <Card className="mt-6 border-amber-400/20">
+            <p className="text-amber-100/90">
+              Final voting is open, but finalists are not ready for every award yet. Refresh
+              shortly — admin may still be confirming the top 4.
             </p>
           </Card>
         )}
@@ -135,10 +174,10 @@ export default function DashboardPage() {
             <div className="flex items-start gap-3">
               <Trophy className="mt-1 h-8 w-8 shrink-0 text-teal-300" />
               <div>
-                <h2 className="font-semibold text-white">Phase 2 — Final vote form</h2>
+                <h2 className="font-semibold text-white">Phase 2 — Final vote (live)</h2>
                 <p className="mt-2 text-sm text-emerald-100/65">
-                  Pick one winner from the 4 finalists for each position (chosen by vote count +
-                  admin).
+                  Pick one winner from the 4 finalists for each position. This page updates
+                  automatically while the session is open.
                 </p>
                 <Link href="/vote" className="mt-4 inline-block">
                   <Button>Open final vote form →</Button>
