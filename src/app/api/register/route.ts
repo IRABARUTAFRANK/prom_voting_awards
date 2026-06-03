@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma, getSettings } from "@/lib/db";
+import { ensurePersonForVoter } from "@/lib/person-roster";
 import { normalizeEmail } from "@/lib/utils";
 
 const schema = z.object({
@@ -34,6 +35,12 @@ export async function POST(req: Request) {
 
   const existing = await prisma.voter.findUnique({ where: { email } });
   if (existing) {
+    if (existing.removedAt) {
+      return NextResponse.json(
+        { error: existing.removalReason ?? "This account was removed by an admin." },
+        { status: 403 },
+      );
+    }
     return NextResponse.json(
       { error: "This email is already registered. Check the voter portal for your status." },
       { status: 409 },
@@ -46,6 +53,8 @@ export async function POST(req: Request) {
       email,
     },
   });
+
+  await ensurePersonForVoter(prisma, { fullName, email });
 
   await prisma.auditLog.create({
     data: {

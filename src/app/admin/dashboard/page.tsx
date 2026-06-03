@@ -9,6 +9,8 @@ import { Input } from "@/components/ui/input";
 import { LiveStatusBar } from "@/components/live-status-bar";
 import { useLiveRefresh } from "@/hooks/use-live-refresh";
 import { parseJsonResponse } from "@/lib/fetch-json";
+import { AUTO_REFRESH_MS } from "@/lib/refresh-interval";
+import { DEFAULT_REMOVAL_MESSAGE } from "@/lib/voter-removal";
 import { formatCodeForDisplay } from "@/lib/utils";
 import { Loader2 } from "lucide-react";
 
@@ -17,6 +19,7 @@ type Stats = {
     registrationOpen: boolean;
     nominationOpen: boolean;
     finalVoteOpen: boolean;
+    liveResultsVisibleToVoters: boolean;
     minApprovedVoters: number;
     schoolEmailDomain: string;
   };
@@ -135,10 +138,8 @@ export default function AdminDashboardPage() {
     }
   }, [router]);
 
-  const ADMIN_REFRESH_MS = 120_000;
-
   const { refresh, refreshing, lastUpdated } = useLiveRefresh(load, {
-    intervalMs: ADMIN_REFRESH_MS,
+    intervalMs: AUTO_REFRESH_MS,
   });
 
   async function patchSettings(data: Record<string, unknown>) {
@@ -168,12 +169,59 @@ export default function AdminDashboardPage() {
     refresh();
   }
 
+  async function removeVoter(voterId: string, fullName: string) {
+    const ok = window.confirm(
+      `Remove ${fullName} from the voter list?\n\nThey will see:\n"${DEFAULT_REMOVAL_MESSAGE}"`,
+    );
+    if (!ok) return;
+    const res = await fetch("/api/admin/voters/remove", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ voterId }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      alert(data.error ?? "Could not remove voter");
+      return;
+    }
+    alert(data.message ?? "Voter removed.");
+    refresh();
+  }
+
   async function releasePhase1() {
     await patchSettings({ nominationOpen: true, finalVoteOpen: false });
   }
 
   async function releasePhase2() {
+    await fetch("/api/admin/shortlist", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ all: true }),
+    });
     await patchSettings({ finalVoteOpen: true });
+  }
+
+  async function addFinalist(positionId: string, personId: string) {
+    const res = await fetch("/api/admin/shortlist", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ positionId, personId }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      alert(data.error ?? "Could not add finalist");
+      return;
+    }
+    refresh();
+  }
+
+  async function removeFinalist(positionId: string, personId: string) {
+    await fetch("/api/admin/shortlist", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ positionId, personId }),
+    });
+    refresh();
   }
 
   async function autoShortlistAll() {
@@ -198,7 +246,7 @@ export default function AdminDashboardPage() {
   useEffect(() => {
     if (tab !== "results") return;
     loadResults();
-    const id = setInterval(loadResults, ADMIN_REFRESH_MS);
+    const id = setInterval(loadResults, AUTO_REFRESH_MS);
     return () => clearInterval(id);
   }, [tab, loadResults]);
 
@@ -273,7 +321,7 @@ export default function AdminDashboardPage() {
               onRefresh={refresh}
               refreshing={refreshing}
               lastUpdated={lastUpdated}
-              intervalMs={ADMIN_REFRESH_MS}
+              intervalMs={AUTO_REFRESH_MS}
             />
             <Link href="/">
               <Button variant="ghost">Site</Button>
@@ -341,8 +389,9 @@ export default function AdminDashboardPage() {
                 <li>Students register with name + email (Senior Six verification is manual).</li>
                 <li>Approve voters — they receive an access code in the voter portal.</li>
                 <li>Release Phase 1 when you are ready (not automatic at 100).</li>
-                <li>After nominations, auto-shortlist top 4; add ties manually.</li>
-                <li>Release Phase 2 for live final voting among the 4 finalists.</li>
+                <li>After nominations, auto-select top 4 by count; override picks on Shortlist tab.</li>
+                <li>Turn on &quot;Live results for voters&quot; if students should see /live.</li>
+                <li>Release Phase 2 for final voting among the 4 finalists per award.</li>
               </ol>
               <h2 className="mt-6 font-semibold text-white">Phases</h2>
               <div className="mt-4 flex flex-wrap gap-3">
@@ -370,11 +419,25 @@ export default function AdminDashboardPage() {
                 >
                   Phase 2 (Final) {stats.settings.finalVoteOpen ? "ON" : "OFF"}
                 </Button>
+                <Button
+                  variant={
+                    stats.settings.liveResultsVisibleToVoters ? "primary" : "secondary"
+                  }
+                  onClick={() =>
+                    patchSettings({
+                      liveResultsVisibleToVoters:
+                        !stats.settings.liveResultsVisibleToVoters,
+                    })
+                  }
+                >
+                  Live results for voters{" "}
+                  {stats.settings.liveResultsVisibleToVoters ? "ON" : "OFF"}
+                </Button>
                 <Button variant="primary" onClick={releasePhase1}>
                   Release Phase 1 for students
                 </Button>
                 <Button variant="primary" onClick={releasePhase2}>
-                  Release Phase 2 (live vote)
+                  Release Phase 2 (auto top 4 + open vote)
                 </Button>
               </div>
               <p className="mt-3 text-xs text-white/40">
@@ -462,13 +525,23 @@ export default function AdminDashboardPage() {
                           : "—"}
                       </td>
                       <td className="p-3">
-                        {v.status === "PENDING" ? (
-                          <Button className="px-3 py-1.5 text-xs" onClick={() => approveOne(v.id)}>
-                            Approve
+                        <div className="flex flex-wrap gap-2">
+                          {v.status === "PENDING" && (
+                            <Button
+                              className="px-3 py-1.5 text-xs"
+                              onClick={() => approveOne(v.id)}
+                            >
+                              Approve
+                            </Button>
+                          )}
+                          <Button
+                            className="px-3 py-1.5 text-xs"
+                            variant="ghost"
+                            onClick={() => removeVoter(v.id, v.fullName)}
+                          >
+                            Delete
                           </Button>
-                        ) : (
-                          <span className="text-white/30">—</span>
-                        )}
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -525,11 +598,20 @@ export default function AdminDashboardPage() {
 
         {tab === "shortlist" && shortlist && (
           <div className="mt-6 space-y-6">
-            <Button onClick={autoShortlistAll}>
-              Auto-select top nominees for all positions
-            </Button>
+            <Card className="border-emerald-400/20">
+              <p className="text-sm text-emerald-100/80">
+                <strong>Auto-select</strong> picks up to four nominees with the highest nomination
+                counts (ties may need your choice). Use <strong>Add</strong> / <strong>Remove</strong>{" "}
+                below to override the final four before opening Phase 2.
+              </p>
+              <Button className="mt-4" onClick={autoShortlistAll}>
+                Auto-select top nominees for all positions
+              </Button>
+            </Card>
             {shortlist.positions.map((pos) => {
               const tally = shortlist.tallies.find((t) => t.positionId === pos.id);
+              const finalistIds = new Set(pos.finalists.map((f) => f.personId));
+              const atCapacity = pos.finalists.length >= 4;
               return (
                 <Card key={pos.id}>
                   <h3 className="font-semibold text-white">{pos.title}</h3>
@@ -538,25 +620,63 @@ export default function AdminDashboardPage() {
                       {tally.preview.tieNote ?? "Admin action needed to reach 4 finalists"}
                     </p>
                   )}
-                  <p className="mt-2 text-xs text-white/40">Nomination counts:</p>
-                  <ul className="mt-1 text-sm text-white/70">
-                    {tally?.counts.slice(0, 8).map((c) => (
-                      <li key={c.personId}>
-                        {c.fullName} — {c.count}
-                      </li>
-                    ))}
+                  <p className="mt-2 text-xs text-white/40">Nomination counts (add to final 4):</p>
+                  <ul className="mt-1 space-y-2 text-sm text-white/70">
+                    {tally?.counts.map((c) => {
+                      const isFinalist = finalistIds.has(c.personId);
+                      return (
+                        <li
+                          key={c.personId}
+                          className="flex flex-wrap items-center justify-between gap-2"
+                        >
+                          <span>
+                            {c.fullName} — {c.count} nomination{c.count === 1 ? "" : "s"}
+                          </span>
+                          {isFinalist ? (
+                            <span className="text-xs text-emerald-300">In final 4</span>
+                          ) : (
+                            <Button
+                              className="px-2 py-1 text-xs"
+                              variant="secondary"
+                              disabled={atCapacity}
+                              onClick={() => addFinalist(pos.id, c.personId)}
+                            >
+                              Add to final 4
+                            </Button>
+                          )}
+                        </li>
+                      );
+                    })}
                   </ul>
                   <p className="mt-3 text-xs text-white/40">
                     Finalists ({pos.finalists.length}/4):
                   </p>
-                  <ul className="text-sm text-emerald-200">
+                  <ul className="mt-1 space-y-2 text-sm text-emerald-200">
                     {pos.finalists.map((f) => (
-                      <li key={f.personId}>
-                        {f.person.fullName}{" "}
-                        <span className="text-white/30">({f.source})</span>
+                      <li
+                        key={f.personId}
+                        className="flex flex-wrap items-center justify-between gap-2"
+                      >
+                        <span>
+                          {f.person.fullName}{" "}
+                          <span className="text-white/30">({f.source})</span>
+                        </span>
+                        <Button
+                          className="px-2 py-1 text-xs"
+                          variant="ghost"
+                          onClick={() => removeFinalist(pos.id, f.personId)}
+                        >
+                          Remove
+                        </Button>
                       </li>
                     ))}
                   </ul>
+                  {pos.finalists.length < 4 && (
+                    <p className="mt-2 text-xs text-amber-200/80">
+                      Need {4 - pos.finalists.length} more finalist
+                      {4 - pos.finalists.length === 1 ? "" : "s"} before Phase 2 voting.
+                    </p>
+                  )}
                 </Card>
               );
             })}

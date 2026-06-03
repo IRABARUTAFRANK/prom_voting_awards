@@ -30,6 +30,13 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Code not found." }, { status: 401, headers: NO_STORE_HEADERS });
   }
 
+  if (matched.removedAt) {
+    return NextResponse.json(
+      { error: matched.removalReason ?? "Your account was removed by an admin." },
+      { status: 403, headers: NO_STORE_HEADERS },
+    );
+  }
+
   if (matched.status === "PENDING") {
     return NextResponse.json(
       {

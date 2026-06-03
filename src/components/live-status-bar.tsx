@@ -9,7 +9,7 @@ type Props = {
   lastUpdated: Date | null;
   /** Poll interval in ms; omit when manualOnly */
   intervalMs?: number;
-  /** Voter pages: no auto-poll — user clicks Refresh */
+  /** When true, only manual refresh (no auto interval). */
   manualOnly?: boolean;
 };
 
@@ -20,9 +20,10 @@ export function LiveStatusBar({
   intervalMs = 120_000,
   manualOnly = false,
 }: Props) {
+  const minutes = intervalMs / 60_000;
   const statusLabel = manualOnly
-    ? "Click refresh to update"
-    : `Auto-updates every ${intervalMs / 60_000} min`;
+    ? "Click Refresh now to update"
+    : `Auto-updates every ${minutes} min · Refresh now anytime`;
 
   return (
     <div className="flex flex-wrap items-center justify-end gap-2 text-sm text-emerald-200/60">

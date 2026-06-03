@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getVoterSession } from "@/lib/auth";
 import { prisma, getSettings } from "@/lib/db";
-import { voterMayParticipate } from "@/lib/voter-guards";
+import { voterIsRemoved, voterMayParticipate } from "@/lib/voter-guards";
 import { NO_STORE_HEADERS } from "@/lib/api-headers";
 
 export async function GET() {
@@ -24,6 +24,13 @@ export async function GET() {
 
   if (!voter) {
     return NextResponse.json({ error: "Voter not found" }, { status: 404, headers: NO_STORE_HEADERS });
+  }
+
+  if (voterIsRemoved(voter.removedAt)) {
+    return NextResponse.json(
+      { error: voter.removalReason ?? "Your account was removed by an admin." },
+      { status: 403, headers: NO_STORE_HEADERS },
+    );
   }
 
   const nominations = await prisma.nomination.findMany({
@@ -55,6 +62,7 @@ export async function GET() {
         registrationOpen: settings.registrationOpen,
         nominationOpen: settings.nominationOpen,
         finalVoteOpen: settings.finalVoteOpen,
+        liveResultsVisibleToVoters: settings.liveResultsVisibleToVoters,
         minApprovedVoters: settings.minApprovedVoters,
       },
       approvedCount,

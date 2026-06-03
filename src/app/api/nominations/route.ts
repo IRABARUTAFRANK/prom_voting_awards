@@ -51,17 +51,34 @@ export async function POST(req: Request) {
   }
 
   const nomineeIds = body.data.nominations.map((n) => n.nomineeId);
-  if (new Set(nomineeIds).size !== nomineeIds.length) {
+  const uniqueNomineeIds = [...new Set(nomineeIds)];
+  const validNominees = await prisma.person.findMany({
+    where: { id: { in: uniqueNomineeIds }, active: true },
+    select: { id: true },
+  });
+  if (validNominees.length !== uniqueNomineeIds.length) {
     return NextResponse.json(
-      { error: "You cannot nominate the same person for multiple positions." },
+      { error: "One or more nominees are invalid. Pick each name from the list." },
       { status: 400 },
     );
   }
 
-  const selfPerson = await prisma.person.findFirst({
-    where: { email: voter.email },
+  const positionIds = new Set(body.data.nominations.map((n) => n.positionId));
+  if (positionIds.size !== body.data.nominations.length) {
+    return NextResponse.json({ error: "Duplicate position in submission." }, { status: 400 });
+  }
+
+  const nominees = await prisma.person.findMany({
+    where: { id: { in: uniqueNomineeIds } },
+    select: { id: true, email: true, fullName: true },
   });
-  if (selfPerson && nomineeIds.includes(selfPerson.id)) {
+  const voterName = voter.fullName.trim().toLowerCase();
+  const selfNominee = nominees.find(
+    (n) =>
+      n.email?.toLowerCase() === voter.email.toLowerCase() ||
+      n.fullName.trim().toLowerCase() === voterName,
+  );
+  if (selfNominee) {
     return NextResponse.json({ error: "You cannot nominate yourself." }, { status: 400 });
   }
 

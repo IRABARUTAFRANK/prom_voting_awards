@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requireAdmin } from "@/lib/admin-guard";
 import { prisma } from "@/lib/db";
 import { generateVoterCode, hashCode } from "@/lib/codes";
+import { ensurePersonForVoter } from "@/lib/person-roster";
 
 const schema = z.object({
   voterIds: z.array(z.string()).optional(),
@@ -19,8 +20,12 @@ export async function POST(req: Request) {
   }
 
   const where = body.data.approveAllPending
-    ? { status: "PENDING" as const }
-    : { id: { in: body.data.voterIds ?? [] }, status: "PENDING" as const };
+    ? { status: "PENDING" as const, removedAt: null }
+    : {
+        id: { in: body.data.voterIds ?? [] },
+        status: "PENDING" as const,
+        removedAt: null,
+      };
 
   const pending = await prisma.voter.findMany({ where });
   let approved = 0;
@@ -37,6 +42,10 @@ export async function POST(req: Request) {
         accessCodePlaintext: plainCode,
         codeRevealedAt: null,
       },
+    });
+    await ensurePersonForVoter(prisma, {
+      fullName: voter.fullName,
+      email: voter.email,
     });
     approved += 1;
   }

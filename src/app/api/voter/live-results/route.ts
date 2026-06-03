@@ -20,14 +20,14 @@ export async function GET() {
 
   const settings = await prisma.systemSettings.findFirst();
   const finalVoteOpen = settings?.finalVoteOpen ?? false;
-  const mayView =
-    finalVoteOpen || voter.status === "FINAL_VOTED" || voter.status === "NOMINATION_SUBMITTED";
+  const liveVisible = settings?.liveResultsVisibleToVoters ?? false;
+  const mayView = finalVoteOpen && liveVisible;
 
   if (!mayView) {
-    return NextResponse.json(
-      { error: "Live results are not available until final voting opens." },
-      { status: 403 },
-    );
+    const error = !finalVoteOpen
+      ? "Live results are not available until the admin opens final voting."
+      : "Live results are only visible to admins. The admin has not enabled public live results for voters.";
+    return NextResponse.json({ error }, { status: 403 });
   }
 
   const results = await getFinalVoteResults();

@@ -4,6 +4,11 @@ import { cookies } from "next/headers";
 const VOTER_COOKIE = "voter_session";
 const ADMIN_COOKIE = "admin_session";
 
+/** Set COOKIE_SECURE=true only behind HTTPS. Default false for LAN/http deploys (e.g. http://10.12.0.7). */
+function cookieSecure(): boolean {
+  return process.env.COOKIE_SECURE === "true";
+}
+
 function getSecret() {
   const secret = process.env.SESSION_SECRET;
   if (!secret || secret.length < 16) {
@@ -25,7 +30,7 @@ export async function createVoterSession(voterId: string) {
   const jar = await cookies();
   jar.set(VOTER_COOKIE, token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: cookieSecure(),
     sameSite: "lax",
     path: "/",
     maxAge: 60 * 60 * 24 * 7,
@@ -42,7 +47,7 @@ export async function createAdminSession() {
   const jar = await cookies();
   jar.set(ADMIN_COOKIE, token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: cookieSecure(),
     sameSite: "lax",
     path: "/",
     maxAge: 60 * 60 * 24,

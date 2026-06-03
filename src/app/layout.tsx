@@ -19,6 +19,7 @@ export const metadata: Metadata = {
   description: "School promotion party awards — register, nominate, and vote",
   icons: {
     icon: "/alliance-logo.png",
+    shortcut: "/alliance-logo.png",
     apple: "/alliance-logo.png",
   },
 };

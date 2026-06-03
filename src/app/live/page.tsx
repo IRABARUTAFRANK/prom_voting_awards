@@ -10,6 +10,7 @@ import { LiveVoteResults, type LiveResultPosition } from "@/components/live-vote
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useLiveRefresh } from "@/hooks/use-live-refresh";
+import { AUTO_REFRESH_MS } from "@/lib/refresh-interval";
 import { useAuthGuard } from "@/hooks/use-auth-guard";
 import { Loader2, Radio } from "lucide-react";
 
@@ -46,7 +47,7 @@ export default function LiveSessionPage() {
   }, [router]);
 
   const { refresh, refreshing, lastUpdated } = useLiveRefresh(load, {
-    intervalMs: 0,
+    intervalMs: AUTO_REFRESH_MS,
   });
 
   if (initialLoad && !data && !blocked) {
@@ -85,7 +86,7 @@ export default function LiveSessionPage() {
             onRefresh={refresh}
             refreshing={refreshing}
             lastUpdated={lastUpdated}
-            manualOnly
+            intervalMs={AUTO_REFRESH_MS}
           />
         </div>
 

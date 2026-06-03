@@ -24,6 +24,8 @@ model SystemSettings {
   registrationOpen  Boolean  @default(true)
   nominationOpen    Boolean  @default(false)
   finalVoteOpen     Boolean  @default(false)
+  /** When true, approved voters can open /live during final voting. Admins always see results. */
+  liveResultsVisibleToVoters Boolean @default(false)
   /** Display target for admins (e.g. 100). Does not block voting — admin approves & opens phases. */
   minApprovedVoters Int      @default(1)
   schoolEmailDomain String   @default("")
@@ -55,6 +57,8 @@ model Voter {
   status              VoterStatus @default(PENDING)
   createdAt           DateTime    @default(now())
   approvedAt          DateTime?
+  removedAt           DateTime?
+  removalReason       String?
 
   nominations Nomination[]
   finalVotes  FinalVote[]

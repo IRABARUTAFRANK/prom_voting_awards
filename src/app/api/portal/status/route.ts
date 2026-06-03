@@ -24,6 +24,16 @@ export async function POST(req: Request) {
     );
   }
 
+  if (voter.removedAt) {
+    return NextResponse.json(
+      {
+        status: "REMOVED",
+        error: voter.removalReason ?? "Your account was removed by an admin.",
+      },
+      { status: 403, headers: NO_STORE_HEADERS },
+    );
+  }
+
   if (voter.status === "PENDING") {
     return NextResponse.json(
       {

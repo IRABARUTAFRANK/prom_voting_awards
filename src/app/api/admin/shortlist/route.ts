@@ -77,9 +77,25 @@ export async function PUT(req: Request) {
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });
   }
 
+  const existing = await prisma.finalist.findUnique({
+    where: {
+      positionId_personId: {
+        positionId: body.data.positionId,
+        personId: body.data.personId,
+      },
+    },
+  });
+
   const count = await prisma.finalist.count({
     where: { positionId: body.data.positionId },
   });
+
+  if (!existing && count >= 4) {
+    return NextResponse.json(
+      { error: "This position already has 4 finalists. Remove one before adding another." },
+      { status: 400 },
+    );
+  }
 
   const finalist = await prisma.finalist.upsert({
     where: {

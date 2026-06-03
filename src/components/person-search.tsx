@@ -54,7 +54,7 @@ export function PersonSearch({ value, onChange, disabled, excludeIds = [] }: Pro
     <div className={cn("relative", open && "z-[200]")}>
       <p className="mb-2 flex items-center gap-1.5 text-xs text-emerald-200/70">
         <UserCheck className="h-3.5 w-3.5" />
-        Type a name, then pick from the school list — no free typing
+        Type a student&apos;s registered name, then pick from the list
       </p>
       <Input
         disabled={disabled}

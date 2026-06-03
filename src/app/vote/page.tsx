@@ -10,6 +10,7 @@ import { LiveStatusBar } from "@/components/live-status-bar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useLiveRefresh } from "@/hooks/use-live-refresh";
+import { AUTO_REFRESH_MS } from "@/lib/refresh-interval";
 import { useAuthGuard } from "@/hooks/use-auth-guard";
 import { Loader2 } from "lucide-react";
 
@@ -65,7 +66,7 @@ export default function VotePage() {
   }, [router]);
 
   const { refresh, refreshing, lastUpdated } = useLiveRefresh(load, {
-    intervalMs: 0,
+    intervalMs: AUTO_REFRESH_MS,
   });
 
   async function submit(e: React.FormEvent) {
@@ -126,7 +127,7 @@ export default function VotePage() {
             onRefresh={refresh}
             refreshing={refreshing}
             lastUpdated={lastUpdated}
-            manualOnly
+            intervalMs={AUTO_REFRESH_MS}
           />
         </div>
 
@@ -137,7 +138,7 @@ export default function VotePage() {
               <Link href="/live" className="font-medium text-teal-300 underline hover:text-white">
                 live session
               </Link>{" "}
-              page (refresh manually for updates).
+              page (auto-updates every 2 minutes, or use Refresh now).
             </p>
           </Card>
         )}

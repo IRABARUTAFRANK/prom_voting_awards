@@ -8,6 +8,7 @@ export async function GET() {
     if ("error" in guard) return guard.error;
 
     const voters = await prisma.voter.findMany({
+      where: { removedAt: null },
       orderBy: { createdAt: "desc" },
       select: {
         id: true,

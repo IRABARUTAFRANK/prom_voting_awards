@@ -7,6 +7,7 @@ const patchSchema = z.object({
   registrationOpen: z.boolean().optional(),
   nominationOpen: z.boolean().optional(),
   finalVoteOpen: z.boolean().optional(),
+  liveResultsVisibleToVoters: z.boolean().optional(),
   minApprovedVoters: z.number().int().min(1).optional(),
   schoolEmailDomain: z.string().optional(),
 });

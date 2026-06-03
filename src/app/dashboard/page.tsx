@@ -9,6 +9,7 @@ import { LiveStatusBar } from "@/components/live-status-bar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useLiveRefresh } from "@/hooks/use-live-refresh";
+import { AUTO_REFRESH_MS } from "@/lib/refresh-interval";
 import { useAuthGuard } from "@/hooks/use-auth-guard";
 import { BarChart3, ClipboardList, Loader2, Trophy } from "lucide-react";
 
@@ -21,6 +22,7 @@ type MeResponse = {
   settings: {
     nominationOpen: boolean;
     finalVoteOpen: boolean;
+    liveResultsVisibleToVoters: boolean;
     minApprovedVoters: number;
   };
   approvedCount: number;
@@ -52,7 +54,7 @@ export default function DashboardPage() {
   }, [router]);
 
   const { refresh, refreshing, lastUpdated } = useLiveRefresh(load, {
-    intervalMs: 0,
+    intervalMs: AUTO_REFRESH_MS,
   });
 
   async function logout() {
@@ -98,7 +100,7 @@ export default function DashboardPage() {
             onRefresh={refresh}
             refreshing={refreshing}
             lastUpdated={lastUpdated}
-            manualOnly
+            intervalMs={AUTO_REFRESH_MS}
           />
         </div>
 
@@ -200,7 +202,9 @@ export default function DashboardPage() {
           </Card>
         )}
 
-        {(settings.finalVoteOpen || voter.status === "FINAL_VOTED") && approved && (
+        {settings.finalVoteOpen &&
+          settings.liveResultsVisibleToVoters &&
+          approved && (
           <Card className="mt-6 border-teal-400/25">
             <div className="flex items-start gap-3">
               <BarChart3 className="mt-1 h-8 w-8 shrink-0 text-teal-300" />
@@ -217,6 +221,18 @@ export default function DashboardPage() {
             </div>
           </Card>
         )}
+
+        {settings.finalVoteOpen &&
+          !settings.liveResultsVisibleToVoters &&
+          approved &&
+          voter.status !== "FINAL_VOTED" && (
+            <Card className="mt-6 border-white/10">
+              <p className="text-sm text-emerald-100/65">
+                Live results are visible to admins only. The admin has not turned on public live
+                results for voters.
+              </p>
+            </Card>
+          )}
 
         {voter.status === "FINAL_VOTED" && (
           <Card className="mt-6 border-emerald-400/30 bg-emerald-500/10">

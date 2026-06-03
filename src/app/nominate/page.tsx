@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { PersonSearch, PersonOption } from "@/components/person-search";
 import { useLiveRefresh } from "@/hooks/use-live-refresh";
+import { AUTO_REFRESH_MS } from "@/lib/refresh-interval";
 import { useAuthGuard } from "@/hooks/use-auth-guard";
 import { Loader2 } from "lucide-react";
 
@@ -59,12 +60,8 @@ export default function NominatePage() {
   }, [router]);
 
   const { refresh, refreshing, lastUpdated } = useLiveRefresh(load, {
-    intervalMs: 0,
+    intervalMs: AUTO_REFRESH_MS,
   });
-
-  const selectedIds = Object.values(picks)
-    .filter(Boolean)
-    .map((p) => p!.id);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -115,7 +112,7 @@ export default function NominatePage() {
           <PageBanner
             variant="nominate"
             title="Phase 1 — Nomination form"
-            subtitle="Select your preferred candidate for each award from the school database."
+            subtitle="Type the name you registered with (or a classmate's), then pick from the list. The same person can be nominated for more than one award."
           />
         </div>
 
@@ -124,7 +121,7 @@ export default function NominatePage() {
             onRefresh={refresh}
             refreshing={refreshing}
             lastUpdated={lastUpdated}
-            manualOnly
+            intervalMs={AUTO_REFRESH_MS}
           />
         </div>
 
@@ -147,7 +144,6 @@ export default function NominatePage() {
                     onChange={(person) =>
                       setPicks((prev) => ({ ...prev, [pos.id]: person }))
                     }
-                    excludeIds={selectedIds.filter((id) => id !== picks[pos.id]?.id)}
                   />
                 </div>
               </Card>
