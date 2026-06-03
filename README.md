@@ -5,11 +5,47 @@ School promotion party voting: registration, admin approval, **Phase 1 nominatio
 ## Quick start
 
 ```bash
-cd school-awards-vote
+cd prom_voting_awards
 npm install
 npm run db:setup
 npm run dev
 ```
+
+### Database (local Windows / first-time setup)
+
+Use **`npm run db:push`** (not `db push` alone). That syncs the schema to SQLite.
+
+If `npx prisma migrate deploy` fails with **P3005** (database not empty, no migration history), your DB was created with `db push`. Either keep using:
+
+```bash
+npm run db:push
+```
+
+Or **baseline** migration history once (after `db push`):
+
+```bash
+npm run db:push
+npm run db:baseline
+npm run db:deploy
+```
+
+If `db:baseline` says migrations are **already applied**, that is fine — run `npm run db:deploy` only.
+
+### EPERM on `query_engine-windows.dll.node`
+
+This happens when **`npm run dev` is still running** and Prisma tries to regenerate the client. Your database can still be in sync.
+
+1. Stop the dev server (Ctrl+C in that terminal), or on Windows:
+   ```powershell
+   taskkill /PID 8188 /F
+   ```
+   (Use the PID shown in the “Another next dev server is already running” message.)
+2. Run `npm run db:push` (uses `--skip-generate` to avoid the lock while dev is running).
+3. If you changed the schema, stop dev first, then: `npm run db:generate` and start dev again.
+
+### Only one dev server
+
+Use **http://localhost:3000** OR **3001**, not both. If port 3000 is taken, stop the old process before starting a new one.
 
 Open [http://localhost:3000](http://localhost:3000).
 
