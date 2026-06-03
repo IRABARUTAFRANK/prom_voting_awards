@@ -12,10 +12,15 @@ export function generateVoterCode(length = 12): string {
   return code;
 }
 
+/** Canonical form stored for admin lookup and hashing. */
+export function normalizeVoterCode(code: string) {
+  return code.replace(/\s|-/g, "").toUpperCase();
+}
+
 export async function hashCode(code: string) {
-  return bcrypt.hash(code.replace(/\s|-/g, "").toUpperCase(), 10);
+  return bcrypt.hash(normalizeVoterCode(code), 10);
 }
 
 export async function verifyCode(code: string, hash: string) {
-  return bcrypt.compare(code.replace(/\s|-/g, "").toUpperCase(), hash);
+  return bcrypt.compare(normalizeVoterCode(code), hash);
 }

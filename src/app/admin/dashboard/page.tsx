@@ -8,6 +8,8 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { LiveStatusBar } from "@/components/live-status-bar";
 import { useLiveRefresh } from "@/hooks/use-live-refresh";
+import { parseJsonResponse } from "@/lib/fetch-json";
+import { formatCodeForDisplay } from "@/lib/utils";
 import { Loader2 } from "lucide-react";
 
 type Stats = {
@@ -32,6 +34,9 @@ type Voter = {
   fullName: string;
   email: string;
   status: string;
+  accessCodePlaintext: string | null;
+  codeRevealedAt: string | null;
+  lastLoginAt: string | null;
 };
 
 type Position = {
@@ -76,26 +81,58 @@ export default function AdminDashboardPage() {
   const [minApprovedInput, setMinApprovedInput] = useState("");
   const [newPos, setNewPos] = useState({ title: "", description: "", slug: "" });
   const [rosterLine, setRosterLine] = useState("");
+  const [loadError, setLoadError] = useState("");
 
   const load = useCallback(async () => {
-    const [s, v, p, sl] = await Promise.all([
-      fetch("/api/admin/stats"),
-      fetch("/api/admin/voters"),
-      fetch("/api/admin/positions"),
-      fetch("/api/admin/shortlist"),
-    ]);
-    if (s.status === 401) {
-      router.replace("/admin");
-      return;
+    setLoadError("");
+    try {
+      const [s, v, p, sl] = await Promise.all([
+        fetch("/api/admin/stats", { cache: "no-store" }),
+        fetch("/api/admin/voters", { cache: "no-store" }),
+        fetch("/api/admin/positions", { cache: "no-store" }),
+        fetch("/api/admin/shortlist", { cache: "no-store" }),
+      ]);
+
+      if ([s, v, p, sl].some((r) => r.status === 401)) {
+        router.replace("/admin");
+        return;
+      }
+
+      if (!s.ok) {
+        const err = await parseJsonResponse<{ error?: string }>(s).catch(() => ({
+          error: "Failed to load admin stats",
+        }));
+        throw new Error(err.error ?? "Failed to load admin stats");
+      }
+      if (!v.ok) {
+        const err = await parseJsonResponse<{ error?: string }>(v).catch(() => ({
+          error: "Failed to load voters",
+        }));
+        throw new Error(err.error ?? "Failed to load voters");
+      }
+      if (!p.ok) {
+        throw new Error("Failed to load positions");
+      }
+      if (!sl.ok) {
+        throw new Error("Failed to load shortlist");
+      }
+
+      const statsJson = await parseJsonResponse<Stats>(s);
+      const votersJson = await parseJsonResponse<{ voters: Voter[] }>(v);
+      const positionsJson = await parseJsonResponse<{ positions: Position[] }>(p);
+      const shortlistJson = await parseJsonResponse<ShortlistData>(sl);
+
+      setStats(statsJson);
+      setSchoolDomain(statsJson.settings.schoolEmailDomain ?? "");
+      setMinApprovedInput(String(statsJson.settings.minApprovedVoters ?? ""));
+      setVoters(votersJson.voters);
+      setPositions(positionsJson.positions);
+      setShortlist(shortlistJson);
+    } catch (e) {
+      setLoadError(e instanceof Error ? e.message : "Failed to load dashboard data");
+    } finally {
+      setInitialLoad(false);
     }
-    const statsJson = await s.json();
-    setStats(statsJson);
-    setSchoolDomain(statsJson.settings.schoolEmailDomain ?? "");
-    setMinApprovedInput(String(statsJson.settings.minApprovedVoters ?? ""));
-    setVoters((await v.json()).voters);
-    setPositions((await p.json()).positions);
-    setShortlist(await sl.json());
-    setInitialLoad(false);
   }, [router]);
 
   const ADMIN_REFRESH_MS = 120_000;
@@ -247,6 +284,20 @@ export default function AdminDashboardPage() {
           </div>
         </div>
 
+        {loadError && (
+          <Card className="mt-6 border-red-400/30 bg-red-500/10">
+            <p className="text-red-100">{loadError}</p>
+            <p className="mt-2 text-sm text-red-200/70">
+              If this mentions migrations, run{" "}
+              <code className="rounded bg-black/30 px-1">npx prisma migrate deploy</code> in the
+              project folder, then refresh.
+            </p>
+            <Button className="mt-3" variant="secondary" onClick={() => refresh()}>
+              Try again
+            </Button>
+          </Card>
+        )}
+
         <nav className="mt-6 flex flex-wrap gap-2">
           {tabs.map(([id, label]) => (
             <button
@@ -372,8 +423,9 @@ export default function AdminDashboardPage() {
           <div className="mt-6">
             <Card className="mb-4 border-amber-400/20">
               <p className="text-sm text-amber-100/90">
-                Approving a voter only gives them a portal access code. Students cannot open the
-                nomination or final vote forms until you release each phase from the Overview tab.
+                Approving a voter generates an access code (shown in the table below for admin
+                recovery). Students collect it once from the voter portal. If they forget it, use
+                the code listed here after they have logged in at least once.
               </p>
             </Card>
             <Button onClick={approveAll} className="mb-4">
@@ -385,7 +437,9 @@ export default function AdminDashboardPage() {
                   <tr>
                     <th className="p-3">Name</th>
                     <th className="p-3">Email</th>
+                    <th className="p-3">Access code</th>
                     <th className="p-3">Status</th>
+                    <th className="p-3">Last login</th>
                     <th className="p-3">Action</th>
                   </tr>
                 </thead>
@@ -394,7 +448,19 @@ export default function AdminDashboardPage() {
                     <tr key={v.id} className="border-t border-white/5">
                       <td className="p-3 text-white">{v.fullName}</td>
                       <td className="p-3 text-white/60">{v.email}</td>
+                      <td className="p-3 font-mono text-xs text-amber-200/90">
+                        {v.accessCodePlaintext
+                          ? formatCodeForDisplay(v.accessCodePlaintext)
+                          : v.status === "PENDING"
+                            ? "—"
+                            : "—"}
+                      </td>
                       <td className="p-3 text-emerald-200">{v.status}</td>
+                      <td className="p-3 text-xs text-white/50">
+                        {v.lastLoginAt
+                          ? new Date(v.lastLoginAt).toLocaleString()
+                          : "—"}
+                      </td>
                       <td className="p-3">
                         {v.status === "PENDING" ? (
                           <Button className="px-3 py-1.5 text-xs" onClick={() => approveOne(v.id)}>

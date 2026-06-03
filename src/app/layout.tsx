@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { AllianceIntro } from "@/components/alliance-intro";
 import { SiteFooter } from "@/components/site-footer";
 import "./globals.css";
 
@@ -33,8 +34,10 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="page-bg min-h-full font-sans">
-        {children}
-        <SiteFooter />
+        <AllianceIntro>
+          {children}
+          <SiteFooter />
+        </AllianceIntro>
       </body>
     </html>
   );
