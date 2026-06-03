@@ -59,7 +59,7 @@ export default function NominatePage() {
   }, [router]);
 
   const { refresh, refreshing, lastUpdated } = useLiveRefresh(load, {
-    intervalMs: 6000,
+    intervalMs: 0,
   });
 
   const selectedIds = Object.values(picks)
@@ -124,6 +124,7 @@ export default function NominatePage() {
             onRefresh={refresh}
             refreshing={refreshing}
             lastUpdated={lastUpdated}
+            manualOnly
           />
         </div>
 

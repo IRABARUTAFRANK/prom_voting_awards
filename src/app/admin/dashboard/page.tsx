@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -98,8 +98,10 @@ export default function AdminDashboardPage() {
     setInitialLoad(false);
   }, [router]);
 
+  const ADMIN_REFRESH_MS = 120_000;
+
   const { refresh, refreshing, lastUpdated } = useLiveRefresh(load, {
-    intervalMs: 6000,
+    intervalMs: ADMIN_REFRESH_MS,
   });
 
   async function patchSettings(data: Record<string, unknown>) {
@@ -146,11 +148,22 @@ export default function AdminDashboardPage() {
     refresh();
   }
 
-  async function loadResults() {
-    const r = await fetch("/api/admin/results");
-    setResults(await r.json());
+  const loadResults = useCallback(async () => {
+    const r = await fetch("/api/admin/results", { cache: "no-store" });
+    if (r.ok) setResults(await r.json());
+  }, []);
+
+  async function openResultsTab() {
+    await loadResults();
     setTab("results");
   }
+
+  useEffect(() => {
+    if (tab !== "results") return;
+    loadResults();
+    const id = setInterval(loadResults, ADMIN_REFRESH_MS);
+    return () => clearInterval(id);
+  }, [tab, loadResults]);
 
   async function addPosition(e: React.FormEvent) {
     e.preventDefault();
@@ -223,6 +236,7 @@ export default function AdminDashboardPage() {
               onRefresh={refresh}
               refreshing={refreshing}
               lastUpdated={lastUpdated}
+              intervalMs={ADMIN_REFRESH_MS}
             />
             <Link href="/">
               <Button variant="ghost">Site</Button>
@@ -239,8 +253,8 @@ export default function AdminDashboardPage() {
               key={id}
               type="button"
               onClick={() => {
-                setTab(id);
-                if (id === "results") loadResults();
+                if (id === "results") void openResultsTab();
+                else setTab(id);
               }}
               className={`rounded-lg px-4 py-2 text-sm font-medium ${
                 tab === id ? "bg-emerald-600 text-white" : "bg-emerald-950/50 text-emerald-100/70"
@@ -490,15 +504,17 @@ export default function AdminDashboardPage() {
                   <h3 className="font-semibold text-white">{r.position.title}</h3>
                   {r.winner ? (
                     <p className="mt-2 text-lg text-teal-200">
-                      Winner: {r.winner.fullName} ({r.winner.votes} votes)
+                      Leading: {r.winner.fullName} ({r.winner.votes} votes ·{" "}
+                      {"percent" in r.winner ? `${r.winner.percent}%` : "—"})
                     </p>
                   ) : (
                     <p className="text-white/50">No votes yet</p>
                   )}
-                  <ul className="mt-2 text-sm text-white/60">
+                  <ul className="mt-2 space-y-1 text-sm text-white/60">
                     {r.ranked.map((x) => (
                       <li key={x.fullName}>
                         {x.fullName}: {x.votes}
+                        {"percent" in x ? ` (${x.percent}%)` : ""}
                       </li>
                     ))}
                   </ul>

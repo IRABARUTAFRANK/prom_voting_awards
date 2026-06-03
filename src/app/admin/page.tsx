@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { PageAutoRefresh } from "@/components/page-auto-refresh";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -54,6 +55,7 @@ export default function AdminPage() {
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center px-4 page-bg">
+      <PageAutoRefresh />
       <Card className="w-full max-w-md">
         <div className="mb-4 flex items-center gap-2 text-white">
           <LayoutDashboard className="h-6 w-6 text-emerald-400" />
