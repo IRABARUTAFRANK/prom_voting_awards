@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma, getSettings } from "@/lib/db";
-import { generateVoterCode, hashCode } from "@/lib/codes";
 import { normalizeEmail } from "@/lib/utils";
 
 const schema = z.object({
+  fullName: z.string().min(2).max(120),
   email: z.string().email(),
 });
 
@@ -19,6 +19,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid name or email." }, { status: 400 });
   }
 
+  const fullName = body.data.fullName.trim();
   const email = normalizeEmail(body.data.email);
   const domain =
     settings.schoolEmailDomain ||
@@ -34,31 +35,15 @@ export async function POST(req: Request) {
   const existing = await prisma.voter.findUnique({ where: { email } });
   if (existing) {
     return NextResponse.json(
-      { error: "This email is already registered. Contact admin if you lost your code." },
+      { error: "This email is already registered. Check the voter portal for your status." },
       { status: 409 },
     );
   }
 
-  // Ensure the email exists in the imported roster (senior sixes only)
-  const rosterPerson = await prisma.person.findUnique({ where: { email } });
-  if (!rosterPerson) {
-    return NextResponse.json(
-      {
-        error:
-          "Email not on the Senior Six roster. Only students imported by admin can register.",
-      },
-      { status: 403 },
-    );
-  }
-
-  const plainCode = generateVoterCode();
-  const codeHash = await hashCode(plainCode);
-
   const voter = await prisma.voter.create({
     data: {
-      fullName: rosterPerson.fullName,
+      fullName,
       email,
-      codeHash,
     },
   });
 
@@ -67,13 +52,14 @@ export async function POST(req: Request) {
       actorType: "voter",
       actorId: voter.id,
       action: "REGISTER",
-      metadata: JSON.stringify({ email }),
+      metadata: JSON.stringify({ email, fullName }),
     },
   });
 
   return NextResponse.json({
     voterId: voter.id,
-    code: plainCode,
-    message: "Save this code — it will not be shown again.",
+    fullName: voter.fullName,
+    message:
+      "Registration submitted. An admin will verify you are Senior Six. Check the voter portal after approval to get your access code.",
   });
 }

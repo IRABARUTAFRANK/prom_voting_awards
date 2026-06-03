@@ -10,12 +10,14 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { PersonSearch, PersonOption } from "@/components/person-search";
 import { useLiveRefresh } from "@/hooks/use-live-refresh";
+import { useAuthGuard } from "@/hooks/use-auth-guard";
 import { Loader2 } from "lucide-react";
 
 type Position = { id: string; title: string; description: string };
 
 export default function NominatePage() {
   const router = useRouter();
+  useAuthGuard("/login");
   const [positions, setPositions] = useState<Position[]>([]);
   const [picks, setPicks] = useState<Record<string, PersonOption | null>>({});
   const [blocked, setBlocked] = useState("");

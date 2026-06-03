@@ -43,13 +43,17 @@ model Person {
 }
 
 model Voter {
-  id           String      @id @default(cuid())
-  fullName     String
-  email        String      @unique
-  codeHash     String
-  status       VoterStatus @default(PENDING)
-  createdAt    DateTime    @default(now())
-  approvedAt   DateTime?
+  id                  String      @id @default(cuid())
+  fullName            String
+  email               String      @unique
+  /** Set when admin approves; required before login. */
+  codeHash            String?
+  /** Plaintext code shown once in the voter portal after approval, then cleared. */
+  accessCodePlaintext String?
+  codeRevealedAt      DateTime?
+  status              VoterStatus @default(PENDING)
+  createdAt           DateTime    @default(now())
+  approvedAt          DateTime?
 
   nominations Nomination[]
   finalVotes  FinalVote[]

@@ -6,87 +6,56 @@ import { SiteHeader } from "@/components/site-header";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { formatCodeForDisplay } from "@/lib/utils";
-import { Copy, CheckCircle2, Shield } from "lucide-react";
+import { CheckCircle2, Shield } from "lucide-react";
 
 export default function RegisterPage() {
+  const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
-  const [rosterName, setRosterName] = useState<string | null>(null);
-  const [lookupError, setLookupError] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [code, setCode] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
-
-  async function lookupEmail(value: string) {
-    setLookupError("");
-    setRosterName(null);
-    if (!value.includes("@")) return;
-    const r = await fetch(`/api/register/lookup?email=${encodeURIComponent(value)}`);
-    const d = await r.json();
-    if (d.found) {
-      setRosterName(d.fullName);
-    } else {
-      setLookupError(d.error ?? "Not on the Senior Six roster.");
-    }
-  }
+  const [submitted, setSubmitted] = useState(false);
+  const [registeredName, setRegisteredName] = useState("");
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
-    if (!rosterName) {
-      setError("Use your school email from the official roster.");
-      return;
-    }
     setLoading(true);
     try {
       const res = await fetch("/api/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ fullName, email }),
       });
       const data = await res.json();
       if (!res.ok) {
         setError(data.error ?? "Registration failed");
         return;
       }
-      setCode(data.code);
+      setRegisteredName(data.fullName ?? fullName);
+      setSubmitted(true);
     } finally {
       setLoading(false);
     }
   }
 
-  if (code) {
-    const display = formatCodeForDisplay(code);
+  if (submitted) {
     return (
       <div className="flex min-h-full flex-col">
         <SiteHeader />
         <main className="mx-auto max-w-lg flex-1 px-4 py-12">
           <Card className="border-emerald-500/30 text-center">
             <CheckCircle2 className="mx-auto h-12 w-12 text-emerald-400" />
-            <h1 className="mt-4 text-2xl font-bold text-white">You&apos;re registered</h1>
+            <h1 className="mt-4 text-2xl font-bold text-white">Registration submitted</h1>
             <p className="mt-2 text-white/60">
-              Save this code — it is shown <strong className="text-white">only once</strong>.
+              Thanks, <strong className="text-white">{registeredName}</strong>. An admin will verify
+              you are Senior Six before you can vote.
             </p>
-            <p className="mt-6 font-mono text-3xl font-bold tracking-wider text-emerald-200">
-              {display}
+            <p className="mt-4 text-sm text-amber-100/90">
+              You will <strong>not</strong> receive a voter code yet. After admin approval, open the
+              voter portal with your email to get your access code once.
             </p>
-            <Button
-              className="mt-6"
-              variant="secondary"
-              onClick={() => {
-                navigator.clipboard.writeText(code);
-                setCopied(true);
-              }}
-            >
-              <Copy className="h-4 w-4" />
-              {copied ? "Copied!" : "Copy code"}
-            </Button>
-            <p className="mt-6 text-sm text-amber-200/90">
-              Status: waiting for admin approval. You cannot nominate or vote until approved.
-            </p>
-            <Link href="/login" className="mt-6 inline-block text-emerald-300 hover:text-white">
-              Go to voter login →
+            <Link href="/portal" className="mt-6 inline-block">
+              <Button>Go to voter portal</Button>
             </Link>
           </Card>
         </main>
@@ -102,10 +71,19 @@ export default function RegisterPage() {
           <h1 className="text-2xl font-bold text-white">Register to vote</h1>
           <p className="mt-2 flex items-start gap-2 text-sm text-white/55">
             <Shield className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" />
-            Senior Six only: your email must already be on the roster imported by admin. Names
-            cannot be typed freely — the system uses the roster record.
+            Senior Six only. Enter your name and school email. An admin will confirm you are on the
+            graduating class before you receive a voter code in the portal.
           </p>
           <form onSubmit={submit} className="mt-6 space-y-4">
+            <div>
+              <label className="mb-1 block text-sm text-white/70">Full name</label>
+              <Input
+                required
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                placeholder="Your full name"
+              />
+            </div>
             <div>
               <label className="mb-1 block text-sm text-white/70">School email</label>
               <Input
@@ -113,19 +91,12 @@ export default function RegisterPage() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                onBlur={(e) => lookupEmail(e.target.value)}
                 placeholder="you@school.edu"
               />
-              {rosterName && (
-                <p className="mt-2 text-sm text-emerald-200">
-                  Roster name: <strong>{rosterName}</strong>
-                </p>
-              )}
-              {lookupError && <p className="mt-2 text-sm text-red-300">{lookupError}</p>}
             </div>
             {error && <p className="text-sm text-red-300">{error}</p>}
-            <Button type="submit" disabled={loading || !rosterName} className="w-full">
-              {loading ? "Registering…" : "Register"}
+            <Button type="submit" disabled={loading} className="w-full">
+              {loading ? "Submitting…" : "Submit registration"}
             </Button>
           </form>
         </Card>

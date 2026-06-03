@@ -200,6 +200,8 @@ export default function AdminDashboardPage() {
     );
   }
 
+  if (!stats) return null;
+
   const tabs = [
     ["overview", "Overview"],
     ["voters", "Voters"],
@@ -271,8 +273,8 @@ export default function AdminDashboardPage() {
             <Card className="sm:col-span-2 lg:col-span-4">
               <h2 className="font-semibold text-white">How to run (testing or full school)</h2>
               <ol className="mt-2 list-decimal space-y-1 pl-5 text-sm text-emerald-100/65">
-                <li>Import Senior Six roster (Positions tab).</li>
-                <li>Approve voters — even one student is enough to test.</li>
+                <li>Students register with name + email (Senior Six verification is manual).</li>
+                <li>Approve voters — they receive an access code in the voter portal.</li>
                 <li>Release Phase 1 when you are ready (not automatic at 100).</li>
                 <li>After nominations, auto-shortlist top 4; add ties manually.</li>
                 <li>Release Phase 2 for live final voting among the 4 finalists.</li>

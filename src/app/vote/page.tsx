@@ -10,6 +10,7 @@ import { LiveStatusBar } from "@/components/live-status-bar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useLiveRefresh } from "@/hooks/use-live-refresh";
+import { useAuthGuard } from "@/hooks/use-auth-guard";
 import { Loader2 } from "lucide-react";
 
 type Finalist = { personId: string; person: { fullName: string } };
@@ -22,6 +23,7 @@ type Position = {
 
 export default function VotePage() {
   const router = useRouter();
+  useAuthGuard("/login");
   const [positions, setPositions] = useState<Position[]>([]);
   const [choices, setChoices] = useState<Record<string, string>>({});
   const [initialLoad, setInitialLoad] = useState(true);

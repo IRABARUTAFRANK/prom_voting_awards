@@ -9,6 +9,7 @@ import { LiveStatusBar } from "@/components/live-status-bar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useLiveRefresh } from "@/hooks/use-live-refresh";
+import { useAuthGuard } from "@/hooks/use-auth-guard";
 import { ClipboardList, Loader2, Trophy } from "lucide-react";
 
 type MeResponse = {
@@ -27,8 +28,7 @@ type MeResponse = {
 };
 
 const statusLabels: Record<string, string> = {
-  PENDING: "Waiting for admin approval",
-  APPROVED: "Approved — open Phase 1 when admin releases it",
+  APPROVED: "Approved — waiting for admin to open Phase 1 (nominations)",
   NOMINATION_SUBMITTED: "Phase 1 done — wait for top 4 finalists per award",
   FINAL_VOTED: "All done — thanks for voting!",
 };
@@ -37,6 +37,8 @@ export default function DashboardPage() {
   const router = useRouter();
   const [data, setData] = useState<MeResponse | null>(null);
   const [initialLoad, setInitialLoad] = useState(true);
+
+  useAuthGuard("/login");
 
   const load = useCallback(async () => {
     const r = await fetch("/api/voter/me", { cache: "no-store" });
@@ -54,8 +56,8 @@ export default function DashboardPage() {
   });
 
   async function logout() {
-    await fetch("/api/voter/logout", { method: "POST" });
-    router.push("/");
+    await fetch("/api/voter/logout", { method: "POST", cache: "no-store" });
+    window.location.replace("/");
   }
 
   if (initialLoad && !data) {
@@ -120,12 +122,12 @@ export default function DashboardPage() {
           </p>
         </Card>
 
-        {voter.status === "PENDING" && (
+        {voter.status === "APPROVED" && !settings.nominationOpen && !settings.finalVoteOpen && (
           <Card className="mt-4 border-amber-400/25">
             <p className="text-amber-100/90">
-              Your registration is <strong>pending</strong>. An admin must approve you before you
-              can nominate or vote — even during testing with one student. Use Refresh to check
-              when you are approved.
+              You are approved. Wait here — the admin will open{" "}
+              <strong>Phase 1 (nominations)</strong> or <strong>Phase 2 (final vote)</strong> when
+              ready. This page refreshes automatically.
             </p>
           </Card>
         )}

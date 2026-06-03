@@ -41,7 +41,9 @@ export default function LoginPage() {
       <main className="mx-auto max-w-md flex-1 px-4 py-12">
         <Card>
           <h1 className="text-2xl font-bold text-white">Voter login</h1>
-          <p className="mt-2 text-sm text-white/55">Enter the code you received at registration.</p>
+          <p className="mt-2 text-sm text-white/55">
+            Enter the access code you received in the voter portal after admin approval.
+          </p>
           <form onSubmit={submit} className="mt-6 space-y-4">
             <div>
               <label className="mb-1 block text-sm text-white/70">Voter code</label>
@@ -60,8 +62,12 @@ export default function LoginPage() {
           </form>
           <p className="mt-4 text-center text-sm text-white/45">
             No code?{" "}
+            <Link href="/portal" className="text-emerald-300 hover:text-white">
+              Check voter portal
+            </Link>
+            {" · "}
             <Link href="/register" className="text-emerald-300 hover:text-white">
-              Register first
+              Register
             </Link>
           </p>
         </Card>

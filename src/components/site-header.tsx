@@ -14,9 +14,12 @@ export function SiteHeader() {
             Promo Awards &apos;26
           </span>
         </Link>
-        <nav className="flex gap-4 text-sm">
+        <nav className="flex flex-wrap justify-end gap-4 text-sm">
           <Link href="/register" className="text-emerald-200/90 hover:text-white">
             Register
+          </Link>
+          <Link href="/portal" className="text-emerald-200/90 hover:text-white">
+            Portal
           </Link>
           <Link href="/login" className="text-emerald-200/90 hover:text-white">
             Login

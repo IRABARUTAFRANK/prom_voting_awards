@@ -10,22 +10,22 @@ const steps = [
   {
     icon: Users,
     title: "Register",
-    text: "Enter your name and school email. You receive a private voter code once.",
+    text: "Enter your name and school email. Admin verifies you are Senior Six.",
   },
   {
     icon: Shield,
     title: "Admin approves",
-    text: "Only Senior Six emails on the official roster can register. Admin approves each voter and opens phases when ready.",
+    text: "Admin checks each registration. Once approved, your access code appears in the voter portal.",
   },
   {
     icon: Vote,
     title: "Phase 1 — Nomination form",
-    text: "Pick classmates per award from the school list. Top names become finalists automatically.",
+    text: "Log in with your code and wait for admin to open nominations. Pick classmates per award.",
   },
   {
     icon: Award,
     title: "Phase 2 — Final vote form",
-    text: "Vote for one of the 4 finalists per position. One vote per person.",
+    text: "When admin opens final voting, pick one of the 4 finalists per position.",
   },
 ];
 
@@ -43,7 +43,12 @@ export default function HomePage() {
         <section className="mt-10 text-center">
           <div className="flex flex-wrap justify-center gap-4">
             <Link href="/register">
-              <Button className="min-w-[180px]">Get your voter code</Button>
+              <Button className="min-w-[180px]">Register to vote</Button>
+            </Link>
+            <Link href="/portal">
+              <Button variant="secondary" className="min-w-[180px]">
+                Voter portal
+              </Button>
             </Link>
             <Link href="/login">
               <Button variant="secondary" className="min-w-[180px]">

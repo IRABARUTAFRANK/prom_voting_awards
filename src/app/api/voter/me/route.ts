@@ -2,11 +2,12 @@ import { NextResponse } from "next/server";
 import { getVoterSession } from "@/lib/auth";
 import { prisma, getSettings } from "@/lib/db";
 import { voterMayParticipate } from "@/lib/voter-guards";
+import { NO_STORE_HEADERS } from "@/lib/api-headers";
 
 export async function GET() {
   const session = await getVoterSession();
   if (!session) {
-    return NextResponse.json({ error: "Not logged in" }, { status: 401 });
+    return NextResponse.json({ error: "Not logged in" }, { status: 401, headers: NO_STORE_HEADERS });
   }
 
   const [voter, settings, positions] = await Promise.all([
@@ -22,7 +23,7 @@ export async function GET() {
   ]);
 
   if (!voter) {
-    return NextResponse.json({ error: "Voter not found" }, { status: 404 });
+    return NextResponse.json({ error: "Voter not found" }, { status: 404, headers: NO_STORE_HEADERS });
   }
 
   const nominations = await prisma.nomination.findMany({
@@ -41,24 +42,27 @@ export async function GET() {
 
   const finalistsReady = positions.every((p) => p.finalists.length >= 4);
 
-  return NextResponse.json({
-    voter: {
-      id: voter.id,
-      fullName: voter.fullName,
-      email: voter.email,
-      status: voter.status,
-      canParticipate: voterMayParticipate(voter.status),
+  return NextResponse.json(
+    {
+      voter: {
+        id: voter.id,
+        fullName: voter.fullName,
+        email: voter.email,
+        status: voter.status,
+        canParticipate: voterMayParticipate(voter.status),
+      },
+      settings: {
+        registrationOpen: settings.registrationOpen,
+        nominationOpen: settings.nominationOpen,
+        finalVoteOpen: settings.finalVoteOpen,
+        minApprovedVoters: settings.minApprovedVoters,
+      },
+      approvedCount,
+      finalistsReady,
+      positions,
+      nominations,
+      finalVotes,
     },
-    settings: {
-      registrationOpen: settings.registrationOpen,
-      nominationOpen: settings.nominationOpen,
-      finalVoteOpen: settings.finalVoteOpen,
-      minApprovedVoters: settings.minApprovedVoters,
-    },
-    approvedCount,
-    finalistsReady,
-    positions,
-    nominations,
-    finalVotes,
-  });
+    { headers: NO_STORE_HEADERS },
+  );
 }
