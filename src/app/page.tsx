@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
+import { PageAutoRefresh } from "@/components/page-auto-refresh";
 import { SiteHeader } from "@/components/site-header";
 import { PageBanner } from "@/components/page-banner";
 import { Button } from "@/components/ui/button";
@@ -32,6 +33,7 @@ const steps = [
 export default function HomePage() {
   return (
     <div className="flex min-h-full flex-col">
+      <PageAutoRefresh />
       <SiteHeader />
       <main className="mx-auto flex max-w-5xl flex-1 flex-col px-4 py-8">
         <PageBanner

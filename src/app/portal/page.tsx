@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { PageAutoRefresh } from "@/components/page-auto-refresh";
 import { SiteHeader } from "@/components/site-header";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -48,6 +49,7 @@ export default function PortalPage() {
     const display = formatCodeForDisplay(result.code);
     return (
       <div className="flex min-h-full flex-col">
+        <PageAutoRefresh />
         <SiteHeader />
         <main className="mx-auto max-w-lg flex-1 px-4 py-12">
           <Card className="border-emerald-500/30 text-center">
@@ -83,6 +85,7 @@ export default function PortalPage() {
 
   return (
     <div className="flex min-h-full flex-col">
+      <PageAutoRefresh />
       <SiteHeader />
       <main className="mx-auto max-w-md flex-1 px-4 py-12">
         <Card>

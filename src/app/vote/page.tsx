@@ -65,7 +65,7 @@ export default function VotePage() {
   }, [router]);
 
   const { refresh, refreshing, lastUpdated } = useLiveRefresh(load, {
-    intervalMs: 4000,
+    intervalMs: 0,
   });
 
   async function submit(e: React.FormEvent) {
@@ -126,9 +126,21 @@ export default function VotePage() {
             onRefresh={refresh}
             refreshing={refreshing}
             lastUpdated={lastUpdated}
-            intervalMs={4000}
+            manualOnly
           />
         </div>
+
+        {!blocked && (
+          <Card className="mt-4 border-teal-400/20 bg-teal-950/20">
+            <p className="text-sm text-teal-100/90">
+              While voting is open, you can follow live counts and percentages on the{" "}
+              <Link href="/live" className="font-medium text-teal-300 underline hover:text-white">
+                live session
+              </Link>{" "}
+              page (refresh manually for updates).
+            </p>
+          </Card>
+        )}
 
         {blocked === "waiting-finalists" ? (
           <Card className="mt-8">

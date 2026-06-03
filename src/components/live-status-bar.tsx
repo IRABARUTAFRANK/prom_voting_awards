@@ -7,20 +7,30 @@ type Props = {
   onRefresh: () => void;
   refreshing: boolean;
   lastUpdated: Date | null;
+  /** Poll interval in ms; omit when manualOnly */
   intervalMs?: number;
+  /** Voter pages: no auto-poll — user clicks Refresh */
+  manualOnly?: boolean;
 };
 
 export function LiveStatusBar({
   onRefresh,
   refreshing,
   lastUpdated,
-  intervalMs = 6000,
+  intervalMs = 120_000,
+  manualOnly = false,
 }: Props) {
+  const statusLabel = manualOnly
+    ? "Click refresh to update"
+    : `Auto-updates every ${intervalMs / 60_000} min`;
+
   return (
     <div className="flex flex-wrap items-center justify-end gap-2 text-sm text-emerald-200/60">
       <span className="flex items-center gap-1.5">
-        <Radio className="h-3.5 w-3.5 text-emerald-400 animate-pulse" />
-        Live · updates every {intervalMs / 1000}s
+        <Radio
+          className={`h-3.5 w-3.5 text-emerald-400 ${manualOnly ? "" : "animate-pulse"}`}
+        />
+        {manualOnly ? "Manual refresh" : "Live"} · {statusLabel}
         {lastUpdated && (
           <span className="text-emerald-200/40">
             · last {lastUpdated.toLocaleTimeString()}

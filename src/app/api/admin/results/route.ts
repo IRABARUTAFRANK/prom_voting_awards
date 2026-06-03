@@ -1,45 +1,27 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/admin-guard";
-import { prisma } from "@/lib/db";
+import { getFinalVoteResults } from "@/lib/vote-results";
 
 export async function GET() {
   const guard = await requireAdmin();
   if ("error" in guard) return guard.error;
 
-  const positions = await prisma.position.findMany({
-    where: { active: true },
-    orderBy: { sortOrder: "asc" },
-    include: {
-      finalists: { include: { person: true } },
-    },
-  });
-
-  const results = await Promise.all(
-    positions.map(async (pos) => {
-      const votes = await prisma.finalVote.groupBy({
-        by: ["personId"],
-        where: { positionId: pos.id },
-        _count: { personId: true },
-      });
-      const people = await prisma.person.findMany({
-        where: { id: { in: votes.map((v) => v.personId) } },
-      });
-      const nameMap = new Map(people.map((p) => [p.id, p.fullName]));
-      const ranked = votes
-        .map((v) => ({
-          personId: v.personId,
-          fullName: nameMap.get(v.personId) ?? "?",
-          votes: v._count.personId,
-        }))
-        .sort((a, b) => b.votes - a.votes);
-
-      return {
-        position: pos,
-        ranked,
-        winner: ranked[0] ?? null,
-      };
-    }),
-  );
+  const computed = await getFinalVoteResults();
+  const results = computed.map((r) => ({
+    position: { title: r.title, description: r.description },
+    ranked: r.ranked.map(({ fullName, votes, percent }) => ({
+      fullName,
+      votes,
+      percent,
+    })),
+    winner: r.winner
+      ? {
+          fullName: r.winner.fullName,
+          votes: r.winner.votes,
+          percent: r.winner.percent,
+        }
+      : null,
+  }));
 
   return NextResponse.json({ results });
 }

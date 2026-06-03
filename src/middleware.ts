@@ -4,7 +4,7 @@ import type { NextRequest } from "next/server";
 const VOTER_COOKIE = "voter_session";
 const ADMIN_COOKIE = "admin_session";
 
-const PROTECTED_VOTER_PATHS = ["/dashboard", "/nominate", "/vote"];
+const PROTECTED_VOTER_PATHS = ["/dashboard", "/nominate", "/vote", "/live"];
 const PROTECTED_ADMIN_PATHS = ["/admin/dashboard"];
 
 export function middleware(request: NextRequest) {
@@ -38,5 +38,12 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/nominate/:path*", "/vote/:path*", "/admin/dashboard/:path*"],
+  matcher: [
+    "/dashboard/:path*",
+    "/nominate/:path*",
+    "/vote/:path*",
+    "/live",
+    "/live/:path*",
+    "/admin/dashboard/:path*",
+  ],
 };

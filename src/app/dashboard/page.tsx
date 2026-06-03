@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useLiveRefresh } from "@/hooks/use-live-refresh";
 import { useAuthGuard } from "@/hooks/use-auth-guard";
-import { ClipboardList, Loader2, Trophy } from "lucide-react";
+import { BarChart3, ClipboardList, Loader2, Trophy } from "lucide-react";
 
 type MeResponse = {
   voter: {
@@ -52,7 +52,7 @@ export default function DashboardPage() {
   }, [router]);
 
   const { refresh, refreshing, lastUpdated } = useLiveRefresh(load, {
-    intervalMs: 5000,
+    intervalMs: 0,
   });
 
   async function logout() {
@@ -98,7 +98,7 @@ export default function DashboardPage() {
             onRefresh={refresh}
             refreshing={refreshing}
             lastUpdated={lastUpdated}
-            intervalMs={5000}
+            manualOnly
           />
         </div>
 
@@ -194,6 +194,24 @@ export default function DashboardPage() {
                 </p>
                 <Link href="/vote" className="mt-4 inline-block">
                   <Button>Open final vote form →</Button>
+                </Link>
+              </div>
+            </div>
+          </Card>
+        )}
+
+        {(settings.finalVoteOpen || voter.status === "FINAL_VOTED") && approved && (
+          <Card className="mt-6 border-teal-400/25">
+            <div className="flex items-start gap-3">
+              <BarChart3 className="mt-1 h-8 w-8 shrink-0 text-teal-300" />
+              <div>
+                <h2 className="font-semibold text-white">Live voting session</h2>
+                <p className="mt-2 text-sm text-emerald-100/65">
+                  Watch vote counts and percentages for each award update as ballots come in.
+                  Use refresh on the live page to see the latest totals.
+                </p>
+                <Link href="/live" className="mt-4 inline-block">
+                  <Button>Open live results →</Button>
                 </Link>
               </div>
             </div>
