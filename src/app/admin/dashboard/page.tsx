@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { LiveStatusBar } from "@/components/live-status-bar";
 import { useLiveRefresh } from "@/hooks/use-live-refresh";
+import { formatCodeForDisplay } from "@/lib/utils";
 import { Loader2 } from "lucide-react";
 
 type Stats = {
@@ -32,6 +33,9 @@ type Voter = {
   fullName: string;
   email: string;
   status: string;
+  accessCodePlaintext: string | null;
+  codeRevealedAt: string | null;
+  lastLoginAt: string | null;
 };
 
 type Position = {
@@ -372,8 +376,9 @@ export default function AdminDashboardPage() {
           <div className="mt-6">
             <Card className="mb-4 border-amber-400/20">
               <p className="text-sm text-amber-100/90">
-                Approving a voter only gives them a portal access code. Students cannot open the
-                nomination or final vote forms until you release each phase from the Overview tab.
+                Approving a voter generates an access code (shown in the table below for admin
+                recovery). Students collect it once from the voter portal. If they forget it, use
+                the code listed here after they have logged in at least once.
               </p>
             </Card>
             <Button onClick={approveAll} className="mb-4">
@@ -385,7 +390,9 @@ export default function AdminDashboardPage() {
                   <tr>
                     <th className="p-3">Name</th>
                     <th className="p-3">Email</th>
+                    <th className="p-3">Access code</th>
                     <th className="p-3">Status</th>
+                    <th className="p-3">Last login</th>
                     <th className="p-3">Action</th>
                   </tr>
                 </thead>
@@ -394,7 +401,19 @@ export default function AdminDashboardPage() {
                     <tr key={v.id} className="border-t border-white/5">
                       <td className="p-3 text-white">{v.fullName}</td>
                       <td className="p-3 text-white/60">{v.email}</td>
+                      <td className="p-3 font-mono text-xs text-amber-200/90">
+                        {v.accessCodePlaintext
+                          ? formatCodeForDisplay(v.accessCodePlaintext)
+                          : v.status === "PENDING"
+                            ? "—"
+                            : "—"}
+                      </td>
                       <td className="p-3 text-emerald-200">{v.status}</td>
+                      <td className="p-3 text-xs text-white/50">
+                        {v.lastLoginAt
+                          ? new Date(v.lastLoginAt).toLocaleString()
+                          : "—"}
+                      </td>
                       <td className="p-3">
                         {v.status === "PENDING" ? (
                           <Button className="px-3 py-1.5 text-xs" onClick={() => approveOne(v.id)}>

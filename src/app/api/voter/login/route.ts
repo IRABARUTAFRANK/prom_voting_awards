@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
-import { verifyCode } from "@/lib/codes";
+import { normalizeVoterCode, verifyCode } from "@/lib/codes";
 import { createVoterSession } from "@/lib/auth";
 import { NO_STORE_HEADERS } from "@/lib/api-headers";
 
@@ -39,6 +39,15 @@ export async function POST(req: Request) {
       { status: 403, headers: NO_STORE_HEADERS },
     );
   }
+
+  const normalizedCode = normalizeVoterCode(body.data.code);
+  await prisma.voter.update({
+    where: { id: matched.id },
+    data: {
+      accessCodePlaintext: matched.accessCodePlaintext ?? normalizedCode,
+      lastLoginAt: new Date(),
+    },
+  });
 
   await createVoterSession(matched.id);
 

@@ -48,9 +48,10 @@ model Voter {
   email               String      @unique
   /** Set when admin approves; required before login. */
   codeHash            String?
-  /** Plaintext code shown once in the voter portal after approval, then cleared. */
+  /** Plaintext access code — kept for admin recovery; shown once to the voter in the portal. */
   accessCodePlaintext String?
   codeRevealedAt      DateTime?
+  lastLoginAt         DateTime?
   status              VoterStatus @default(PENDING)
   createdAt           DateTime    @default(now())
   approvedAt          DateTime?

@@ -36,11 +36,11 @@ export async function POST(req: Request) {
     );
   }
 
-  if (voter.accessCodePlaintext) {
+  if (voter.accessCodePlaintext && !voter.codeRevealedAt) {
     const code = voter.accessCodePlaintext;
     await prisma.voter.update({
       where: { id: voter.id },
-      data: { accessCodePlaintext: null, codeRevealedAt: new Date() },
+      data: { codeRevealedAt: new Date() },
     });
     return NextResponse.json(
       {
