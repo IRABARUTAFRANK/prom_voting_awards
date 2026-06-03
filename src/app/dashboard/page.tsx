@@ -122,15 +122,26 @@ export default function DashboardPage() {
           </p>
         </Card>
 
-        {voter.status === "APPROVED" && !settings.nominationOpen && !settings.finalVoteOpen && (
+        {approved && voter.status === "APPROVED" && !settings.nominationOpen && (
           <Card className="mt-4 border-amber-400/25">
             <p className="text-amber-100/90">
-              You are approved. Wait here — the admin will open{" "}
-              <strong>Phase 1 (nominations)</strong> or <strong>Phase 2 (final vote)</strong> when
-              ready. This page refreshes automatically.
+              You are approved and logged in. The admin has <strong>not released</strong> the
+              nomination form yet — please wait here. This page refreshes automatically when Phase
+              1 opens.
             </p>
           </Card>
         )}
+
+        {approved &&
+          voter.status === "NOMINATION_SUBMITTED" &&
+          !settings.finalVoteOpen && (
+            <Card className="mt-4 border-amber-400/25">
+              <p className="text-amber-100/90">
+                Phase 1 is complete. The admin has <strong>not released</strong> the final vote form
+                yet — please wait here until Phase 2 opens.
+              </p>
+            </Card>
+          )}
 
         {approved && settings.nominationOpen && voter.status === "APPROVED" && (
           <Card className="mt-6 border-emerald-400/25">

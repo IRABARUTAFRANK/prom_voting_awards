@@ -3,30 +3,11 @@ import { cn } from "@/lib/utils";
 
 type BannerVariant = "home" | "nominate" | "vote" | "dashboard";
 
-const banners: Record<
-  BannerVariant,
-  { src: string; alt: string; overlay: string }
-> = {
-  home: {
-    src: "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=1200&q=80",
-    alt: "Students celebrating graduation",
-    overlay: "from-emerald-950/90 via-emerald-900/70 to-transparent",
-  },
-  nominate: {
-    src: "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=1200&q=80",
-    alt: "Friends together",
-    overlay: "from-emerald-950/95 via-teal-900/75 to-emerald-950/40",
-  },
-  vote: {
-    src: "https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=1200&q=80",
-    alt: "Celebration lights",
-    overlay: "from-emerald-950/95 via-green-900/80 to-transparent",
-  },
-  dashboard: {
-    src: "https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?w=1200&q=80",
-    alt: "Event celebration",
-    overlay: "from-emerald-950/90 via-emerald-900/65 to-transparent",
-  },
+const overlays: Record<BannerVariant, string> = {
+  home: "from-emerald-950/90 via-emerald-900/70 to-transparent",
+  nominate: "from-emerald-950/95 via-teal-900/75 to-emerald-950/40",
+  vote: "from-emerald-950/95 via-green-900/80 to-transparent",
+  dashboard: "from-emerald-950/90 via-emerald-900/65 to-transparent",
 };
 
 export function PageBanner({
@@ -40,7 +21,6 @@ export function PageBanner({
   subtitle?: string;
   className?: string;
 }) {
-  const b = banners[variant];
   return (
     <div
       className={cn(
@@ -49,14 +29,14 @@ export function PageBanner({
       )}
     >
       <Image
-        src={b.src}
-        alt={b.alt}
+        src="/class_2026.png"
+        alt="Hope Haven Christian School Class of 2026"
         width={1200}
         height={400}
-        className="h-44 w-full object-cover sm:h-52"
+        className="h-44 w-full object-cover object-top sm:h-52"
         priority={variant === "home"}
       />
-      <div className={cn("absolute inset-0 bg-gradient-to-r", b.overlay)} />
+      <div className={cn("absolute inset-0 bg-gradient-to-r", overlays[variant])} />
       <div className="absolute inset-0 flex flex-col justify-end p-6 sm:p-8">
         <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">{title}</h1>
         {subtitle && (

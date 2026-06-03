@@ -356,6 +356,12 @@ export default function AdminDashboardPage() {
 
         {tab === "voters" && (
           <div className="mt-6">
+            <Card className="mb-4 border-amber-400/20">
+              <p className="text-sm text-amber-100/90">
+                Approving a voter only gives them a portal access code. Students cannot open the
+                nomination or final vote forms until you release each phase from the Overview tab.
+              </p>
+            </Card>
             <Button onClick={approveAll} className="mb-4">
               Approve all pending ({stats.counts.pending})
             </Button>

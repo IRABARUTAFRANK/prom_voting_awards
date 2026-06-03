@@ -51,7 +51,7 @@ export function PersonSearch({ value, onChange, disabled, excludeIds = [] }: Pro
   }, [query, value, search]);
 
   return (
-    <div className="relative">
+    <div className={cn("relative", open && "z-[200]")}>
       <p className="mb-2 flex items-center gap-1.5 text-xs text-emerald-200/70">
         <UserCheck className="h-3.5 w-3.5" />
         Type a name, then pick from the school list — no free typing
@@ -84,7 +84,7 @@ export function PersonSearch({ value, onChange, disabled, excludeIds = [] }: Pro
         </div>
       )}
       {open && !value && query.length >= 1 && (
-        <ul className="absolute z-20 mt-1 max-h-48 w-full overflow-auto rounded-xl border border-emerald-400/20 bg-emerald-950 py-1 shadow-2xl">
+        <ul className="absolute z-[300] mt-1 max-h-48 w-full overflow-auto rounded-xl border border-emerald-400/30 bg-emerald-950 py-1 shadow-2xl ring-1 ring-emerald-400/20">
           {loading && <li className="px-4 py-2 text-sm text-emerald-200/50">Searching…</li>}
           {!loading && results.length === 0 && (
             <li className="px-4 py-2 text-sm text-emerald-200/50">

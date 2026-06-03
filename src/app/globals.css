@@ -15,25 +15,28 @@
   --font-sans: var(--font-geist-sans);
 }
 
+html {
+  min-height: 100%;
+}
+
 body {
-  /* Background image set to the site-wide photo. Using uploaded file in public/ */
-  background-image: url('/class_2026.png');
-  background-size: cover;
-  background-position: center center;
-  background-attachment: fixed;
-  background-repeat: no-repeat;
   color: var(--foreground);
   min-height: 100vh;
 }
 
 .page-bg {
-  /* Gradient overlay on top of the class photo for readability */
-  background:
-    radial-gradient(ellipse 90% 60% at 50% -10%, rgba(52, 211, 153, 0.18), transparent),
-    radial-gradient(ellipse 50% 40% at 100% 20%, rgba(16, 185, 129, 0.1), transparent),
-    radial-gradient(ellipse 40% 50% at 0% 100%, rgba(6, 95, 70, 0.28), transparent),
-    linear-gradient(180deg, rgba(20, 40, 32, 0.72) 0%, rgba(15, 26, 20, 0.78) 45%, rgba(10, 18, 16, 0.82) 100%);
-  background-blend-mode: overlay, overlay, overlay, normal;
+  /* Class of 2026 photo with a readable overlay on every page */
+  background-color: #0f1a14;
+  background-image:
+    radial-gradient(ellipse 90% 60% at 50% -10%, rgba(52, 211, 153, 0.16), transparent),
+    radial-gradient(ellipse 50% 40% at 100% 20%, rgba(16, 185, 129, 0.08), transparent),
+    radial-gradient(ellipse 40% 50% at 0% 100%, rgba(6, 95, 70, 0.24), transparent),
+    linear-gradient(180deg, rgba(20, 40, 32, 0.68) 0%, rgba(15, 26, 20, 0.74) 45%, rgba(10, 18, 16, 0.8) 100%),
+    url("/class_2026.png");
+  background-size: cover;
+  background-position: center center;
+  background-attachment: fixed;
+  background-repeat: no-repeat;
   min-height: 100vh;
 }
 

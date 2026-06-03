@@ -132,9 +132,9 @@ export default function NominatePage() {
             <p className="text-amber-100">{blocked}</p>
           </Card>
         ) : (
-          <form onSubmit={submit} className="mt-8 space-y-6">
+          <form onSubmit={submit} className="relative mt-8 space-y-6">
             {positions.map((pos, i) => (
-              <Card key={pos.id}>
+              <Card key={pos.id} className="relative overflow-visible focus-within:z-[100]">
                 <span className="text-xs font-medium uppercase tracking-wider text-emerald-400/80">
                   Award {i + 1} of {positions.length}
                 </span>

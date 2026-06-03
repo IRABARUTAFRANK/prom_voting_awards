@@ -46,10 +46,14 @@ export async function POST(req: Request) {
       data: {
         actorType: "admin",
         action: "APPROVE_VOTERS",
-        metadata: JSON.stringify({ count: approved }),
+        metadata: JSON.stringify({ count: approved, phasesUnchanged: true }),
       },
     });
   }
 
-  return NextResponse.json({ approved });
+  return NextResponse.json({
+    approved,
+    message:
+      "Voters approved. They must collect their code from the voter portal. Nomination and final vote forms stay closed until you release each phase.",
+  });
 }

@@ -49,8 +49,18 @@ const SAMPLE_ROSTER = [
 async function main() {
   await prisma.systemSettings.upsert({
     where: { id: 1 },
-    create: { id: 1, minApprovedVoters: 1, schoolEmailDomain: "school.edu" },
-    update: { minApprovedVoters: 1 },
+    create: {
+      id: 1,
+      minApprovedVoters: 1,
+      schoolEmailDomain: "school.edu",
+      nominationOpen: false,
+      finalVoteOpen: false,
+    },
+    update: {
+      minApprovedVoters: 1,
+      nominationOpen: false,
+      finalVoteOpen: false,
+    },
   });
 
   for (const p of POSITIONS) {
