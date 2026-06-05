@@ -44,17 +44,19 @@ export default function LoginPage() {
         <Card>
           <h1 className="text-2xl font-bold text-white">Voter login</h1>
           <p className="mt-2 text-sm text-white/55">
-            Enter the access code you received in the voter portal after admin approval.
+            Enter the code your admin gave you (e.g. first two letters of your name plus two
+            numbers). You will be signed in as that student automatically.
           </p>
           <form onSubmit={submit} className="mt-6 space-y-4">
             <div>
-              <label className="mb-1 block text-sm text-white/70">Voter code</label>
+              <label className="mb-1 block text-sm text-white/70">Your voter code</label>
               <Input
                 required
                 value={code}
                 onChange={(e) => setCode(e.target.value.toUpperCase())}
-                placeholder="XXXX-XXXX-XXXX"
+                placeholder="e.g. AL42"
                 className="font-mono tracking-widest"
+                maxLength={12}
               />
             </div>
             {error && <p className="text-sm text-red-300">{error}</p>}
@@ -63,13 +65,8 @@ export default function LoginPage() {
             </Button>
           </form>
           <p className="mt-4 text-center text-sm text-white/45">
-            No code?{" "}
-            <Link href="/portal" className="text-emerald-300 hover:text-white">
-              Check voter portal
-            </Link>
-            {" · "}
-            <Link href="/register" className="text-emerald-300 hover:text-white">
-              Register
+            <Link href="/" className="text-emerald-300 hover:text-white">
+              ← Back to home
             </Link>
           </p>
         </Card>

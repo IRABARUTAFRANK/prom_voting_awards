@@ -14,6 +14,8 @@
     "db:baseline": "node scripts/baseline-migrations.mjs",
     "db:seed": "tsx prisma/seed.ts",
     "db:setup": "prisma db push --skip-generate && tsx prisma/seed.ts",
+    "import:s6": "tsx scripts/import_s6_roster.ts",
+    "import:roster": "tsx scripts/import_roster.ts",
     "postinstall": "prisma generate"
   },
   "prisma": {
@@ -29,6 +31,7 @@
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "tailwind-merge": "^3.6.0",
+    "xlsx": "^0.18.5",
     "zod": "^4.4.3"
   },
   "devDependencies": {

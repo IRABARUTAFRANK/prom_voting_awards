@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { prisma } from "@/lib/db";
+import { prisma, tuneSqliteForConcurrency } from "@/lib/db";
 import { normalizeVoterCode, verifyCode } from "@/lib/codes";
 import { createVoterSession } from "@/lib/auth";
 import { NO_STORE_HEADERS } from "@/lib/api-headers";
 
 const schema = z.object({
-  code: z.string().min(6).max(24),
+  code: z.string().min(4).max(24),
 });
 
 export async function POST(req: Request) {
@@ -15,14 +15,27 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid code." }, { status: 400, headers: NO_STORE_HEADERS });
   }
 
-  const voters = await prisma.voter.findMany({
-    where: { codeHash: { not: null } },
+  await tuneSqliteForConcurrency();
+
+  const normalizedCode = normalizeVoterCode(body.data.code);
+
+  let matched = await prisma.voter.findFirst({
+    where: {
+      removedAt: null,
+      OR: [{ loginCode: normalizedCode }, { accessCodePlaintext: normalizedCode }],
+    },
   });
-  let matched: (typeof voters)[0] | null = null;
-  for (const v of voters) {
-    if (v.codeHash && (await verifyCode(body.data.code, v.codeHash))) {
-      matched = v;
-      break;
+
+  if (!matched) {
+    const withHash = await prisma.voter.findMany({
+      where: { codeHash: { not: null }, removedAt: null },
+      take: 500,
+    });
+    for (const v of withHash) {
+      if (v.codeHash && (await verifyCode(body.data.code, v.codeHash))) {
+        matched = v;
+        break;
+      }
     }
   }
 
@@ -41,13 +54,11 @@ export async function POST(req: Request) {
     return NextResponse.json(
       {
         error:
-          "Your registration is still pending admin approval. Check the voter portal after you are approved.",
+          "Your account is not active yet. Ask the admin for your voter code.",
       },
       { status: 403, headers: NO_STORE_HEADERS },
     );
   }
-
-  const normalizedCode = normalizeVoterCode(body.data.code);
   await prisma.voter.update({
     where: { id: matched.id },
     data: {

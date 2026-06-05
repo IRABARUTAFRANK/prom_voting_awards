@@ -35,6 +35,7 @@ model SystemSettings {
 model Person {
   id        String   @id @default(cuid())
   fullName  String
+  className String?
   email     String?  @unique
   active    Boolean  @default(true)
   createdAt DateTime @default(now())
@@ -42,15 +43,23 @@ model Person {
   nominationsReceived Nomination[] @relation("Nominee")
   finalists           Finalist[]
   finalVotesReceived  FinalVote[]  @relation("VotedFor")
+
+  @@index([active, fullName])
+  @@index([className])
 }
 
 model Voter {
   id                  String      @id @default(cuid())
   fullName            String
+  className           String?
+  /** Official list number (1–136); used for login codes e.g. LY01. */
+  rosterIndex         Int?        @unique
   email               String      @unique
-  /** Set when admin approves; required before login. */
+  /** Set when admin approves or roster is imported; required before login. */
   codeHash            String?
-  /** Plaintext access code — kept for admin recovery; shown once to the voter in the portal. */
+  /** Simple login code (e.g. AL42) — unique for O(1) lookup under load. */
+  loginCode           String?     @unique
+  /** Plaintext access code — kept for admin recovery and printing. */
   accessCodePlaintext String?
   codeRevealedAt      DateTime?
   lastLoginAt         DateTime?
@@ -62,6 +71,9 @@ model Voter {
 
   nominations Nomination[]
   finalVotes  FinalVote[]
+
+  @@index([className])
+  @@index([status])
 }
 
 model Position {
@@ -127,5 +139,12 @@ model AuditLog {
   actorId   String?
   action    String
   metadata  String?
+  createdAt DateTime @default(now())
+}
+
+model AdminMessage {
+  id        String   @id @default(cuid())
+  author    String   @default("Admin")
+  body      String
   createdAt DateTime @default(now())
 }

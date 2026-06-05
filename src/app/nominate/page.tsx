@@ -21,6 +21,7 @@ export default function NominatePage() {
   useAuthGuard("/login");
   const [positions, setPositions] = useState<Position[]>([]);
   const [picks, setPicks] = useState<Record<string, PersonOption | null>>({});
+  const [typedNames, setTypedNames] = useState<Record<string, string>>({});
   const [blocked, setBlocked] = useState("");
   const [initialLoad, setInitialLoad] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -69,9 +70,10 @@ export default function NominatePage() {
     const nominations = positions.map((pos) => ({
       positionId: pos.id,
       nomineeId: picks[pos.id]?.id,
+      nomineeName: picks[pos.id]?.fullName ?? typedNames[pos.id]?.trim(),
     }));
-    if (nominations.some((n) => !n.nomineeId)) {
-      setError("Select one person from the list for every award.");
+    if (nominations.some((n) => !n.nomineeId && !n.nomineeName)) {
+      setError("Enter or select one student for every award.");
       return;
     }
     setSubmitting(true);
@@ -112,7 +114,7 @@ export default function NominatePage() {
           <PageBanner
             variant="nominate"
             title="Phase 1 — Nomination form"
-            subtitle="Type the name you registered with (or a classmate's), then pick from the list. The same person can be nominated for more than one award."
+            subtitle="Pick a classmate from the dropdown or type their full name. The same person can be nominated for more than one award."
           />
         </div>
 
@@ -143,6 +145,9 @@ export default function NominatePage() {
                     value={picks[pos.id] ?? null}
                     onChange={(person) =>
                       setPicks((prev) => ({ ...prev, [pos.id]: person }))
+                    }
+                    onTypedName={(name) =>
+                      setTypedNames((prev) => ({ ...prev, [pos.id]: name }))
                     }
                   />
                 </div>

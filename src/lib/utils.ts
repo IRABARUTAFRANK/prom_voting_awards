@@ -10,5 +10,7 @@ export function normalizeEmail(email: string) {
 }
 
 export function formatCodeForDisplay(code: string) {
-  return code.match(/.{1,4}/g)?.join("-") ?? code;
+  const c = code.replace(/\s|-/g, "");
+  if (c.length <= 6) return c;
+  return c.match(/.{1,4}/g)?.join("-") ?? code;
 }

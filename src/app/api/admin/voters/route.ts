@@ -13,8 +13,10 @@ export async function GET() {
       select: {
         id: true,
         fullName: true,
+        className: true,
         email: true,
         status: true,
+        loginCode: true,
         accessCodePlaintext: true,
         codeRevealedAt: true,
         lastLoginAt: true,

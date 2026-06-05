@@ -1,14 +1,16 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getVoterSession } from "@/lib/auth";
-import { prisma, getSettings } from "@/lib/db";
+import { prisma, getSettings, tuneSqliteForConcurrency } from "@/lib/db";
 import { voterMayParticipate } from "@/lib/voter-guards";
+import { resolveNomineeId } from "@/lib/resolve-nominee";
 
 const schema = z.object({
   nominations: z.array(
     z.object({
       positionId: z.string(),
-      nomineeId: z.string(),
+      nomineeId: z.string().optional(),
+      nomineeName: z.string().optional(),
     }),
   ),
 });
@@ -40,17 +42,34 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid payload." }, { status: 400 });
   }
 
+  await tuneSqliteForConcurrency();
+
+  const resolved: Array<{ positionId: string; nomineeId: string }> = [];
+  for (const n of body.data.nominations) {
+    const nomineeId = await resolveNomineeId(prisma, n.nomineeId, n.nomineeName);
+    if (!nomineeId) {
+      return NextResponse.json(
+        {
+          error:
+            "One or more names were not found. Pick from the list or type the full name exactly as on the roster.",
+        },
+        { status: 400 },
+      );
+    }
+    resolved.push({ positionId: n.positionId, nomineeId });
+  }
+
   const positions = await prisma.position.findMany({
     where: { active: true },
   });
-  if (body.data.nominations.length !== positions.length) {
+  if (resolved.length !== positions.length) {
     return NextResponse.json(
       { error: `Nominate one person for each of the ${positions.length} positions.` },
       { status: 400 },
     );
   }
 
-  const nomineeIds = body.data.nominations.map((n) => n.nomineeId);
+  const nomineeIds = resolved.map((n) => n.nomineeId);
   const uniqueNomineeIds = [...new Set(nomineeIds)];
   const validNominees = await prisma.person.findMany({
     where: { id: { in: uniqueNomineeIds }, active: true },
@@ -63,8 +82,8 @@ export async function POST(req: Request) {
     );
   }
 
-  const positionIds = new Set(body.data.nominations.map((n) => n.positionId));
-  if (positionIds.size !== body.data.nominations.length) {
+  const positionIds = new Set(resolved.map((n) => n.positionId));
+  if (positionIds.size !== resolved.length) {
     return NextResponse.json({ error: "Duplicate position in submission." }, { status: 400 });
   }
 
@@ -83,7 +102,7 @@ export async function POST(req: Request) {
   }
 
   await prisma.$transaction(async (tx) => {
-    for (const n of body.data!.nominations) {
+    for (const n of resolved) {
       await tx.nomination.upsert({
         where: {
           voterId_positionId: {

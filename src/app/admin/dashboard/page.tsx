@@ -12,6 +12,8 @@ import { parseJsonResponse } from "@/lib/fetch-json";
 import { AUTO_REFRESH_MS } from "@/lib/refresh-interval";
 import { DEFAULT_REMOVAL_MESSAGE } from "@/lib/voter-removal";
 import { formatCodeForDisplay } from "@/lib/utils";
+import { AdminStudentsPanel } from "@/components/admin-students-panel";
+import { AdminChatPanel } from "@/components/admin-chat-panel";
 import { Loader2 } from "lucide-react";
 
 type Stats = {
@@ -35,8 +37,10 @@ type Stats = {
 type Voter = {
   id: string;
   fullName: string;
+  className: string | null;
   email: string;
   status: string;
+  loginCode: string | null;
   accessCodePlaintext: string | null;
   codeRevealedAt: string | null;
   lastLoginAt: string | null;
@@ -76,9 +80,9 @@ export default function AdminDashboardPage() {
       ranked: Array<{ fullName: string; votes: number }>;
     }>;
   } | null>(null);
-  const [tab, setTab] = useState<"overview" | "voters" | "positions" | "shortlist" | "results">(
-    "overview",
-  );
+  const [tab, setTab] = useState<
+    "overview" | "students" | "voters" | "positions" | "shortlist" | "results" | "chat"
+  >("overview");
   const [initialLoad, setInitialLoad] = useState(true);
   const [schoolDomain, setSchoolDomain] = useState("");
   const [minApprovedInput, setMinApprovedInput] = useState("");
@@ -302,6 +306,8 @@ export default function AdminDashboardPage() {
 
   const tabs = [
     ["overview", "Overview"],
+    ["students", "Students & codes"],
+    ["chat", "Admin chat"],
     ["voters", "Voters"],
     ["positions", "Positions"],
     ["shortlist", "Shortlist"],
@@ -386,8 +392,8 @@ export default function AdminDashboardPage() {
             <Card className="sm:col-span-2 lg:col-span-4">
               <h2 className="font-semibold text-white">How to run (testing or full school)</h2>
               <ol className="mt-2 list-decimal space-y-1 pl-5 text-sm text-emerald-100/65">
-                <li>Students register with name + email (Senior Six verification is manual).</li>
-                <li>Approve voters — they receive an access code in the voter portal.</li>
+                <li>Import the Senior Six Excel list (Students tab) — each student gets a login code.</li>
+                <li>Print codes per class and hand them to students.</li>
                 <li>Release Phase 1 when you are ready (not automatic at 100).</li>
                 <li>After nominations, auto-select top 4 by count; override picks on Shortlist tab.</li>
                 <li>Turn on &quot;Live results for voters&quot; if students should see /live.</li>
@@ -482,6 +488,10 @@ export default function AdminDashboardPage() {
           </div>
         )}
 
+        {tab === "students" && <AdminStudentsPanel />}
+
+        {tab === "chat" && <AdminChatPanel />}
+
         {tab === "voters" && (
           <div className="mt-6">
             <Card className="mb-4 border-amber-400/20">
@@ -499,6 +509,7 @@ export default function AdminDashboardPage() {
                 <thead className="bg-white/5 text-white/60">
                   <tr>
                     <th className="p-3">Name</th>
+                    <th className="p-3">Class</th>
                     <th className="p-3">Email</th>
                     <th className="p-3">Access code</th>
                     <th className="p-3">Status</th>
@@ -510,13 +521,12 @@ export default function AdminDashboardPage() {
                   {voters.map((v) => (
                     <tr key={v.id} className="border-t border-white/5">
                       <td className="p-3 text-white">{v.fullName}</td>
+                      <td className="p-3 text-white/60">{v.className ?? "—"}</td>
                       <td className="p-3 text-white/60">{v.email}</td>
                       <td className="p-3 font-mono text-xs text-amber-200/90">
-                        {v.accessCodePlaintext
-                          ? formatCodeForDisplay(v.accessCodePlaintext)
-                          : v.status === "PENDING"
-                            ? "—"
-                            : "—"}
+                        {v.loginCode ?? v.accessCodePlaintext
+                          ? formatCodeForDisplay(v.loginCode ?? v.accessCodePlaintext ?? "")
+                          : "—"}
                       </td>
                       <td className="p-3 text-emerald-200">{v.status}</td>
                       <td className="p-3 text-xs text-white/50">

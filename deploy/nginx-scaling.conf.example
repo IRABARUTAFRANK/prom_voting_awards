@@ -1,0 +1,25 @@
+# Example nginx + PM2 setup for concurrent school voting (SQLite WAL mode enabled in app).
+#
+# 1. Run one Node process per CPU (PM2 cluster) — SQLite allows many readers, one writer:
+#    pm2 start npm --name awards -i max -- start
+#
+# 2. Proxy to localhost:3000:
+upstream awards_app {
+    server 127.0.0.1:3000;
+    keepalive 32;
+}
+
+server {
+    listen 80;
+    server_name your-school-server;
+
+    location / {
+        proxy_pass http://awards_app;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header Connection "";
+    }
+}
+
+# For 500+ simultaneous voters, switch DATABASE_URL to PostgreSQL in prisma/schema.prisma.

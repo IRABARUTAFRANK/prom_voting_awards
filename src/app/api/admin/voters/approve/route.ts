@@ -2,7 +2,12 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/admin-guard";
 import { prisma } from "@/lib/db";
-import { generateVoterCode, hashCode } from "@/lib/codes";
+import {
+  buildRosterCode,
+  hashCode,
+  nextRosterIndex,
+  normalizeVoterCode,
+} from "@/lib/codes";
 import { ensurePersonForVoter } from "@/lib/person-roster";
 
 const schema = z.object({
@@ -31,15 +36,19 @@ export async function POST(req: Request) {
   let approved = 0;
 
   for (const voter of pending) {
-    const plainCode = generateVoterCode();
-    const codeHash = await hashCode(plainCode);
+    const rosterIndex = await nextRosterIndex(prisma);
+    const firstName = voter.fullName.trim().split(/\s+/)[0] ?? voter.fullName;
+    const normalized = normalizeVoterCode(buildRosterCode(firstName, rosterIndex));
+    const codeHash = await hashCode(normalized);
     await prisma.voter.update({
       where: { id: voter.id },
       data: {
         status: "APPROVED",
         approvedAt: new Date(),
+        rosterIndex,
+        loginCode: normalized,
         codeHash,
-        accessCodePlaintext: plainCode,
+        accessCodePlaintext: normalized,
         codeRevealedAt: null,
       },
     });
